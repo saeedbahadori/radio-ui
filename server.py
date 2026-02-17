@@ -1,11 +1,11 @@
-import http.server
-import socketserver
+from http.server import SimpleHTTPRequestHandler
+from socketserver import TCPServer
 import os
 
 PORT = int(os.environ.get("PORT", 8080))
 
-Handler = http.server.SimpleHTTPRequestHandler
+Handler = SimpleHTTPRequestHandler
 
-with socketserver.TCPServer(("0.0.0.0", PORT), Handler) as httpd:
-    print(f"Serving on port {PORT}")
+with TCPServer(("0.0.0.0", PORT), Handler) as httpd:
+    print("Server running on port", PORT)
     httpd.serve_forever()
