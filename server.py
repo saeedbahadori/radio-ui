@@ -1,11 +1,14 @@
-import http.server
-import socketserver
 import os
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
-PORT = int(os.environ.get("PORT", 8080))
+app = FastAPI()
 
-Handler = http.server.SimpleHTTPRequestHandler
+# serve index.html
+@app.get("/")
+def read_index():
+    return FileResponse("index.html")
 
-with socketserver.TCPServer(("0.0.0.0", PORT), Handler) as httpd:
-    print(f"Serving UI on port {PORT}")
-    httpd.serve_forever()
+# serve static files if needed
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
