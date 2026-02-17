@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<title>Radio AI</title>
+
+<style>
+body {
+    font-family: sans-serif;
+    background:#111;
+    color:white;
+    text-align:center;
+    padding:40px;
+}
+
+input, button {
+    padding:12px;
+    margin:10px;
+    width:300px;
+    font-size:16px;
+}
+
+button {
+    background:#00d4ff;
+    border:none;
+    cursor:pointer;
+}
+
+#result {
+    margin-top:30px;
+    white-space:pre-line;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🎙️ Radio AI</h1>
+
+<input id="message" placeholder="موضوع برنامه امروز..." />
+
+<br>
+
+<button onclick="sendMessage()">شروع</button>
+
+<div id="result"></div>
+
+<audio id="player" controls style="margin-top:20px;"></audio>
+
+<script>
+
+async function sendMessage(){
+
+    const msg = document.getElementById("message").value;
+
+    const res = await fetch("/chat", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json"},
+        body:JSON.stringify({message:msg})
+    });
+
+    const data = await res.json();
+
+    document.getElementById("result").innerText = data.reply;
+
+    // اگر متن نهایی بود → صدا بساز
+    if(data.reply.includes("🎙️ متن نهایی")){
+
+        const audioRes = await fetch("/generate-audio",{
+            method:"POST",
+            headers:{ "Content-Type":"application/json"},
+            body:JSON.stringify({text:data.reply})
+        });
+
+        const blob = await audioRes.blob();
+
+        const url = URL.createObjectURL(blob);
+        document.getElementById("player").src = url;
+    }
+}
+
+</script>
+
+</body>
+</html>
