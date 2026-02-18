@@ -1,19 +1,63 @@
-<body style="background:black;color:white;text-align:center;margin-top:100px;">
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<title>Radio AI</title>
 
-<h1>🚀 Radio UI</h1>
-<p id="status">Checking radio...</p>
+<style>
+    body {
+        background: black;
+        color: white;
+        text-align: center;
+        font-family: sans-serif;
+        margin-top: 120px;
+    }
+
+    h1 {
+        font-size: 42px;
+        margin-bottom: 20px;
+    }
+
+    h2 {
+        font-weight: normal;
+        opacity: 0.85;
+    }
+
+    .credit {
+        margin-top: 60px;
+        font-size: 18px;
+        opacity: 0.7;
+        line-height: 1.8;
+    }
+</style>
+</head>
+
+<body>
+
+<h1>🎙️ اولین رادیوی هوش مصنوعی در جهان</h1>
+
+<h2 id="status">در حال اتصال به رادیو...</h2>
+
+<div class="credit">
+    <div>طراح: <strong>سعید بهادری</strong></div>
+    <div>سفارش پروژه: <strong>زهرا قاعدی</strong></div>
+</div>
 
 <script>
-fetch("/api/status")
-  .then(r => r.json())
-  .then(data => {
-    document.getElementById("status").innerText =
-      "Radio status: " + data.radio;
-  })
-  .catch(() => {
-    document.getElementById("status").innerText =
-      "Radio offline";
-  });
+async function checkStatus() {
+    try {
+        const res = await fetch("/api/status");
+        const data = await res.json();
+        document.getElementById("status").innerText =
+            "وضعیت رادیو: " + data.radio;
+    } catch {
+        document.getElementById("status").innerText =
+            "ارتباط با رادیو برقرار نشد";
+    }
+}
+
+checkStatus();
 </script>
 
 </body>
+</html>
