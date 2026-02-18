@@ -1,7 +1,7 @@
 import os
 import uvicorn
 from fastapi import FastAPI
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from openai import OpenAI
 
@@ -14,6 +14,8 @@ client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# حافظه ساده سشن‌ها
+sessions = {}
 
 # ===============================
 # MODELS
@@ -21,6 +23,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class ChatRequest(BaseModel):
     message: str
+    session_id: str
 
 
 # ===============================
@@ -43,38 +46,95 @@ def status():
 
 
 # ===============================
-# RADIO BROADCAST (AI CHAT)
+# RADIO PRODUCER (STEP BY STEP)
 # ===============================
 @app.post("/api/chat")
 def chat(req: ChatRequest):
 
+    session_id = req.session_id
     user_message = req.message.strip()
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {
-                "role": "system",
-                "content": """
-تو گوینده اولین رادیوی هوش مصنوعی جهان هستی.
-پاسخ‌ها کوتاه، گرم، شنیداری و شبیه اجرای رادیویی باشند.
-لحن صمیمی، الهام‌بخش و زنده داشته باش.
-حداکثر 4 جمله بگو.
-در پایان جمله‌ای شبیه امضای رادیویی اضافه کن.
+    # ساخت سشن جدید
+    if session_id not in sessions:
+        sessions[session_id] = {"step": "program_name"}
+        return {"reply": "🎙️ سلام! اسم برنامه رادیویی چی باشه؟"}
+
+    state = sessions[session_id]
+
+    # -------- STEP 1 : NAME --------
+    if state["step"] == "program_name":
+        state["program_name"] = user_message
+        state["step"] = "topic"
+        return {"reply": "موضوع برنامه درباره چی باشه؟"}
+
+    # -------- STEP 2 : TOPIC --------
+    elif state["step"] == "topic":
+        state["topic"] = user_message
+        state["step"] = "tone"
+        return {"reply": "چه لحنی می‌خوای؟ (صمیمی، رسمی، انگیزشی، داستانی)"}
+
+    # -------- STEP 3 : TONE --------
+    elif state["step"] == "tone":
+        state["tone"] = user_message
+        state["step"] = "duration"
+        return {"reply": "مدت زمان برنامه چند دقیقه باشه؟"}
+
+    # -------- STEP 4 : DURATION --------
+    elif state["step"] == "duration":
+        state["duration"] = user_message
+        state["step"] = "confirm"
+
+        summary = f"""
+نام برنامه: {state['program_name']}
+موضوع: {state['topic']}
+لحن: {state['tone']}
+مدت: {state['duration']} دقیقه
 """
-            },
-            {
-                "role": "user",
-                "content": user_message
-            }
-        ],
-        temperature=0.9,
-        max_tokens=200
-    )
 
-    reply = response.choices[0].message.content
+        return {
+            "reply": f"👌 مشخصات برنامه:\n{summary}\nاگر تایید می‌کنی بنویس «بله»."
+        }
 
-    return {"reply": reply}
+    # -------- STEP 5 : GENERATE SCRIPT --------
+    elif state["step"] == "confirm":
+
+        if "بله" not in user_message:
+            state["step"] = "program_name"
+            return {"reply": "باشه، از اول شروع کنیم. اسم برنامه چیه؟"}
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": f"""
+تو نویسنده حرفه‌ای رادیو هستی.
+
+بر اساس اطلاعات زیر یک متن کامل برنامه رادیویی بنویس:
+
+نام برنامه: {state['program_name']}
+موضوع: {state['topic']}
+لحن: {state['tone']}
+مدت زمان: {state['duration']} دقیقه
+
+متن باید آماده اجرا باشد.
+"""
+                }
+            ],
+            temperature=0.9,
+            max_tokens=700
+        )
+
+        script = response.choices[0].message.content
+
+        state["step"] = "done"
+
+        return {"reply": script}
+
+    # -------- RESET --------
+    else:
+        sessions.pop(session_id, None)
+        return {"reply": "برنامه تمام شد 🎧 برای برنامه جدید اسم برنامه را بنویس."}
 
 
 # ===============================
