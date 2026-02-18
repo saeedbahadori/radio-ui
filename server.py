@@ -3,16 +3,22 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
+from openai import OpenAI
 
 app = FastAPI()
 
-# مسیر پوشه پروژه
+# ===============================
+# OpenAI Client
+# ===============================
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+# مسیر پروژه
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-# ==================================================
+# ===============================
 # MODELS
-# ==================================================
+# ===============================
 
 class RadioRequest(BaseModel):
     topic: str
@@ -22,31 +28,31 @@ class ChatRequest(BaseModel):
     message: str
 
 
-# ==================================================
+# ===============================
 # ROUTES
-# ==================================================
+# ===============================
 
-# صفحه اصلی (UI)
+# صفحه اصلی
 @app.get("/")
 def home():
     return FileResponse(os.path.join(BASE_DIR, "index.html"))
 
 
-# تست زنده بودن سرور
+# تست سلامت
 @app.get("/ping")
 def ping():
     return {"status": "ok"}
 
 
-# وضعیت رادیو (برای UI)
+# وضعیت رادیو
 @app.get("/api/status")
 def status():
     return JSONResponse({"radio": "online"})
 
 
-# --------------------------------------------------
+# -------------------------------
 # تولید متن برنامه رادیویی
-# --------------------------------------------------
+# -------------------------------
 @app.post("/api/generate")
 def generate_radio(req: RadioRequest):
 
@@ -69,31 +75,43 @@ def generate_radio(req: RadioRequest):
     return {"script": script}
 
 
-# --------------------------------------------------
-# CHAT API (چت داخل صفحه اصلی)
-# --------------------------------------------------
+# -------------------------------
+# CHAT AI (متصل به OpenAI)
+# -------------------------------
 @app.post("/api/chat")
 def chat(req: ChatRequest):
 
     user_message = req.message.strip()
 
-    reply = f"""
-🎙️ رادیو هوش مصنوعی:
-
-درباره «{user_message}» صحبت جالبی مطرح کردی.
-
-اگر بخوایم رادیویی نگاه کنیم،
-این موضوع جاییه که تکنولوژی، احساس و داستان به هم می‌رسن.
-
-با ما همراه باش...
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": """
+تو یک گوینده حرفه‌ای رادیویی فارسی هستی.
+پاسخ‌ها کوتاه، گرم، شنیداری و مناسب اجرای رادیویی باشند.
+لحن الهام‌بخش و صمیمی داشته باش.
+حداکثر 4 جمله پاسخ بده.
 """
+            },
+            {
+                "role": "user",
+                "content": user_message
+            }
+        ],
+        temperature=0.8,
+        max_tokens=200
+    )
+
+    reply = response.choices[0].message.content
 
     return {"reply": reply}
 
 
-# ==================================================
-# SERVER START (Railway Compatible)
-# ==================================================
+# ===============================
+# SERVER START (Railway)
+# ===============================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
 
