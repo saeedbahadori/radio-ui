@@ -1,4 +1,5 @@
 import os
+import uuid
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -13,6 +14,10 @@ app = FastAPI()
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+AUDIO_DIR = os.path.join(BASE_DIR, "audio")
+
+# اگر پوشه audio نبود بساز
+os.makedirs(AUDIO_DIR, exist_ok=True)
 
 # حافظه ساده سشن‌ها
 sessions = {}
@@ -46,7 +51,7 @@ def status():
 
 
 # ===============================
-# RADIO PRODUCER (STEP BY STEP)
+# RADIO PRODUCER FLOW
 # ===============================
 @app.post("/api/chat")
 def chat(req: ChatRequest):
@@ -54,32 +59,31 @@ def chat(req: ChatRequest):
     session_id = req.session_id
     user_message = req.message.strip()
 
-    # ساخت سشن جدید
     if session_id not in sessions:
         sessions[session_id] = {"step": "program_name"}
         return {"reply": "🎙️ سلام! اسم برنامه رادیویی چی باشه؟"}
 
     state = sessions[session_id]
 
-    # -------- STEP 1 : NAME --------
+    # STEP 1
     if state["step"] == "program_name":
         state["program_name"] = user_message
         state["step"] = "topic"
         return {"reply": "موضوع برنامه درباره چی باشه؟"}
 
-    # -------- STEP 2 : TOPIC --------
+    # STEP 2
     elif state["step"] == "topic":
         state["topic"] = user_message
         state["step"] = "tone"
         return {"reply": "چه لحنی می‌خوای؟ (صمیمی، رسمی، انگیزشی، داستانی)"}
 
-    # -------- STEP 3 : TONE --------
+    # STEP 3
     elif state["step"] == "tone":
         state["tone"] = user_message
         state["step"] = "duration"
         return {"reply": "مدت زمان برنامه چند دقیقه باشه؟"}
 
-    # -------- STEP 4 : DURATION --------
+    # STEP 4
     elif state["step"] == "duration":
         state["duration"] = user_message
         state["step"] = "confirm"
@@ -95,7 +99,7 @@ def chat(req: ChatRequest):
             "reply": f"👌 مشخصات برنامه:\n{summary}\nاگر تایید می‌کنی بنویس «بله»."
         }
 
-    # -------- STEP 5 : GENERATE SCRIPT --------
+    # STEP 5 — GENERATE SCRIPT
     elif state["step"] == "confirm":
 
         if "بله" not in user_message:
@@ -110,14 +114,12 @@ def chat(req: ChatRequest):
                     "content": f"""
 تو نویسنده حرفه‌ای رادیو هستی.
 
-بر اساس اطلاعات زیر یک متن کامل برنامه رادیویی بنویس:
-
 نام برنامه: {state['program_name']}
 موضوع: {state['topic']}
 لحن: {state['tone']}
-مدت زمان: {state['duration']} دقیقه
+مدت: {state['duration']} دقیقه
 
-متن باید آماده اجرا باشد.
+یک متن کامل و آماده اجرای رادیویی بنویس.
 """
                 }
             ],
@@ -127,14 +129,52 @@ def chat(req: ChatRequest):
 
         script = response.choices[0].message.content
 
+        # متن نهایی داخل session ذخیره شود
+        state["final_script"] = script
         state["step"] = "done"
 
-        return {"reply": script}
+        return {
+            "reply": script + "\n\nاگر تایید نهایی است بنویس «تولید صدا»."
+        }
 
-    # -------- RESET --------
-    else:
+    # STEP 6 — CREATE VOICE
+    elif state["step"] == "done":
+
+        if "تولید صدا" not in user_message:
+            return {"reply": "برای دریافت فایل صوتی بنویس «تولید صدا»."}
+
+        text = state["final_script"]
+
+        file_id = str(uuid.uuid4())
+        file_path = os.path.join(AUDIO_DIR, f"{file_id}.mp3")
+
+        speech = client.audio.speech.create(
+            model="gpt-4o-mini-tts",
+            voice="alloy",
+            input=text
+        )
+
+        with open(file_path, "wb") as f:
+            f.write(speech.read())
+
         sessions.pop(session_id, None)
-        return {"reply": "برنامه تمام شد 🎧 برای برنامه جدید اسم برنامه را بنویس."}
+
+        return {
+            "reply": "🎧 فایل صوتی آماده شد.",
+            "audio_url": f"/audio/{file_id}.mp3"
+        }
+
+    # RESET
+    sessions.pop(session_id, None)
+    return {"reply": "برنامه جدیدی شروع کنیم. اسم برنامه چیه؟"}
+
+
+# ===============================
+# AUDIO DOWNLOAD
+# ===============================
+@app.get("/audio/{filename}")
+def get_audio(filename: str):
+    return FileResponse(os.path.join(AUDIO_DIR, filename))
 
 
 # ===============================
