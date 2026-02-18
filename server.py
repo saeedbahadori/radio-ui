@@ -1,11 +1,8 @@
-from http.server import SimpleHTTPRequestHandler
-from socketserver import TCPServer
-import os
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
 
-PORT = int(os.environ.get("PORT", 8080))
+app = FastAPI()
 
-Handler = SimpleHTTPRequestHandler
-
-with TCPServer(("0.0.0.0", PORT), Handler) as httpd:
-    print("Server running on port", PORT)
-    httpd.serve_forever()
+@app.get("/")
+def home():
+    return FileResponse("index.html")
