@@ -10,7 +10,7 @@
         color: white;
         text-align: center;
         font-family: sans-serif;
-        margin-top: 120px;
+        margin-top: 100px;
     }
 
     h1 {
@@ -24,10 +24,41 @@
     }
 
     .credit {
-        margin-top: 60px;
+        margin-top: 40px;
         font-size: 18px;
         opacity: 0.7;
         line-height: 1.8;
+    }
+
+    .chat-box {
+        margin: 40px auto;
+        max-width: 600px;
+        text-align: right;
+    }
+
+    .message {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 8px;
+        background: #111;
+    }
+
+    input {
+        padding: 12px;
+        width: 65%;
+        font-size: 16px;
+        border: none;
+        border-radius: 6px;
+    }
+
+    button {
+        padding: 12px 20px;
+        font-size: 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        background: #ffffff;
+        color: black;
     }
 </style>
 </head>
@@ -43,7 +74,19 @@
     <div>سفارش پروژه: <strong>زهرا قاعدی</strong></div>
 </div>
 
+
+<!-- ===== CHAT UI ===== -->
+
+<div style="margin-top:50px;">
+    <input id="message" placeholder="پیام خود را بنویسید..." />
+    <button onclick="sendMessage()">ارسال</button>
+</div>
+
+<div id="chat" class="chat-box"></div>
+
+
 <script>
+/* ---------- وضعیت رادیو ---------- */
 async function checkStatus() {
     try {
         const res = await fetch("/api/status");
@@ -57,6 +100,48 @@ async function checkStatus() {
 }
 
 checkStatus();
+
+
+/* ---------- CHAT ---------- */
+async function sendMessage() {
+
+    const input = document.getElementById("message");
+    const chat = document.getElementById("chat");
+
+    const text = input.value.trim();
+    if (!text) return;
+
+    // پیام کاربر
+    chat.innerHTML += `
+        <div class="message"><b>شما:</b> ${text}</div>
+    `;
+
+    input.value = "";
+
+    try {
+        const res = await fetch("/api/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ message: text })
+        });
+
+        const data = await res.json();
+
+        // پاسخ رادیو
+        chat.innerHTML += `
+            <div class="message"><b>Radio AI:</b> ${data.reply}</div>
+        `;
+
+        window.scrollTo(0, document.body.scrollHeight);
+
+    } catch {
+        chat.innerHTML += `
+            <div class="message">خطا در ارتباط با رادیو</div>
+        `;
+    }
+}
 </script>
 
 </body>
