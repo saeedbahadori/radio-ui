@@ -19,7 +19,6 @@ h1 {
 }
 
 h2 {
-    font-weight: normal;
     opacity: 0.8;
 }
 
@@ -30,7 +29,7 @@ h2 {
     line-height: 1.8;
 }
 
-/* ---------- CHAT ---------- */
+/* CHAT */
 
 .chat-box {
     margin: 40px auto;
@@ -46,35 +45,30 @@ h2 {
     line-height: 1.9;
 }
 
-.user {
-    background: #1a1a1a;
-}
-
+.user { background:#1a1a1a; }
 .ai {
-    background: #0f0f0f;
-    border-right: 3px solid #ffffff33;
+    background:#0f0f0f;
+    border-right:3px solid #ffffff33;
 }
 
-.input-area {
-    margin-top: 40px;
-}
+.input-area { margin-top:40px; }
 
 input {
-    padding: 12px;
-    width: 60%;
-    font-size: 16px;
-    border: none;
-    border-radius: 6px;
+    padding:12px;
+    width:60%;
+    font-size:16px;
+    border:none;
+    border-radius:6px;
 }
 
 button {
-    padding: 12px 20px;
-    font-size: 16px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    background: white;
-    color: black;
+    padding:12px 20px;
+    font-size:16px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    background:white;
+    color:black;
 }
 </style>
 </head>
@@ -91,17 +85,21 @@ button {
 </div>
 
 
-<!-- ================= CHAT UI ================= -->
+<!-- CHAT -->
 
 <div class="input-area">
-    <input id="message" placeholder="موضوع برنامه را بنویسید..." />
-    <button onclick="sendMessage()">پخش</button>
+    <input id="message" placeholder="پاسخ خود را بنویسید..." />
+    <button onclick="sendMessage()">ارسال</button>
 </div>
 
 <div id="chat" class="chat-box"></div>
 
 
 <script>
+
+/* ================= SESSION ================= */
+const SESSION_ID = crypto.randomUUID();
+
 
 /* ---------- STATUS ---------- */
 async function checkStatus() {
@@ -118,16 +116,14 @@ async function checkStatus() {
 checkStatus();
 
 
-/* ---------- ENTER KEY SEND ---------- */
+/* ---------- ENTER SEND ---------- */
 document.getElementById("message")
-.addEventListener("keypress", function(e){
-    if(e.key === "Enter"){
-        sendMessage();
-    }
+.addEventListener("keydown", e => {
+    if(e.key === "Enter") sendMessage();
 });
 
 
-/* ---------- TYPEWRITER EFFECT ---------- */
+/* ---------- TYPEWRITER ---------- */
 function typeWriter(text, element){
 
     let i = 0;
@@ -136,7 +132,7 @@ function typeWriter(text, element){
         if(i < text.length){
             element.innerHTML += text.charAt(i);
             i++;
-            setTimeout(typing, 18);
+            setTimeout(typing,15);
         }
     }
 
@@ -144,48 +140,82 @@ function typeWriter(text, element){
 }
 
 
-/* ---------- CHAT ---------- */
-async function sendMessage() {
+/* ---------- ADD MESSAGE ---------- */
+function addMessage(role, text){
 
-    const input = document.getElementById("message");
     const chat = document.getElementById("chat");
 
+    const div = document.createElement("div");
+    div.className = "message " + role;
+
+    if(role === "user")
+        div.innerHTML = `<b>🎧 شما:</b> ${text}`;
+    else
+        div.innerHTML = `<b>📻 رادیو:</b> `;
+
+    chat.appendChild(div);
+
+    window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: "smooth"
+    });
+
+    return div;
+}
+
+
+/* ---------- CHAT ---------- */
+async function sendMessage(){
+
+    const input = document.getElementById("message");
     const text = input.value.trim();
-    if (!text) return;
+    if(!text) return;
 
-    // پیام کاربر
-    chat.innerHTML += `
-        <div class="message user"><b>🎧 شما:</b> ${text}</div>
-    `;
-
+    addMessage("user", text);
     input.value = "";
 
-    const aiDiv = document.createElement("div");
-    aiDiv.className = "message ai";
-    aiDiv.innerHTML = "<b>📻 رادیو:</b> ";
-    chat.appendChild(aiDiv);
-
-    window.scrollTo(0, document.body.scrollHeight);
+    const aiDiv = addMessage("ai","");
 
     try {
 
-        const res = await fetch("/api/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: text })
+        const res = await fetch("/api/chat",{
+            method:"POST",
+            headers:{ "Content-Type":"application/json" },
+            body: JSON.stringify({
+                message:text,
+                session_id:SESSION_ID
+            })
         });
 
         const data = await res.json();
 
-        // تایپ زنده پاسخ
         typeWriter(data.reply, aiDiv);
 
     } catch {
-
         aiDiv.innerHTML += "خطا در ارتباط با رادیو";
-
     }
 }
+
+
+/* ---------- START CONVERSATION ---------- */
+window.onload = async () => {
+
+    const aiDiv = addMessage("ai","");
+
+    const res = await fetch("/api/chat",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({
+            message:"شروع",
+            session_id:SESSION_ID
+        })
+    });
+
+    const data = await res.json();
+
+    typeWriter(data.reply, aiDiv);
+};
+
 </script>
 
 </body>
