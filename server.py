@@ -11,6 +11,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 def home():
     return FileResponse(os.path.join(BASE_DIR, "index.html"))
 
+@app.get("/ping")
+def ping():
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
