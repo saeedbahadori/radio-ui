@@ -8,9 +8,13 @@ from openai import OpenAI
 app = FastAPI()
 
 # ===============================
-# OpenAI Client
+# OpenAI Client (Safe Init)
 # ===============================
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+
+client = None
+if OPENAI_API_KEY:
+    client = OpenAI(api_key=OPENAI_API_KEY)
 
 # مسیر پروژه
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -38,7 +42,7 @@ def home():
     return FileResponse(os.path.join(BASE_DIR, "index.html"))
 
 
-# تست سلامت
+# تست سلامت سرور
 @app.get("/ping")
 def ping():
     return {"status": "ok"}
@@ -76,10 +80,15 @@ def generate_radio(req: RadioRequest):
 
 
 # -------------------------------
-# CHAT AI (متصل به OpenAI)
+# CHAT AI (Connected to OpenAI)
 # -------------------------------
 @app.post("/api/chat")
 def chat(req: ChatRequest):
+
+    if client is None:
+        return {
+            "reply": "⚠️ هوش مصنوعی هنوز فعال نشده (OPENAI_API_KEY تنظیم نشده)."
+        }
 
     user_message = req.message.strip()
 
