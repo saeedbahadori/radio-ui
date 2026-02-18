@@ -8,25 +8,16 @@ from openai import OpenAI
 app = FastAPI()
 
 # ===============================
-# OpenAI Client (Safe Init)
+# OpenAI
 # ===============================
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-client = None
-if OPENAI_API_KEY:
-    client = OpenAI(api_key=OPENAI_API_KEY)
-
-# مسیر پروژه
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 # ===============================
 # MODELS
 # ===============================
-
-class RadioRequest(BaseModel):
-    topic: str
-
 
 class ChatRequest(BaseModel):
     message: str
@@ -36,59 +27,26 @@ class ChatRequest(BaseModel):
 # ROUTES
 # ===============================
 
-# صفحه اصلی
 @app.get("/")
 def home():
     return FileResponse(os.path.join(BASE_DIR, "index.html"))
 
 
-# تست سلامت سرور
 @app.get("/ping")
 def ping():
     return {"status": "ok"}
 
 
-# وضعیت رادیو
 @app.get("/api/status")
 def status():
-    return JSONResponse({"radio": "online"})
+    return {"radio": "online"}
 
 
-# -------------------------------
-# تولید متن برنامه رادیویی
-# -------------------------------
-@app.post("/api/generate")
-def generate_radio(req: RadioRequest):
-
-    topic = req.topic.strip()
-
-    script = f"""
-🎙️ برنامه رادیویی هوش مصنوعی
-
-موضوع امروز: {topic}
-
-سلام به شنوندگان عزیز،
-شما به اولین رادیوی هوش مصنوعی جهان گوش می‌دهید.
-
-امروز درباره «{topic}» صحبت می‌کنیم؛
-موضوعی که آینده را شکل می‌دهد و نگاه ما به جهان را تغییر می‌دهد.
-
-با ما همراه باشید...
-"""
-
-    return {"script": script}
-
-
-# -------------------------------
-# CHAT AI (Connected to OpenAI)
-# -------------------------------
+# ===============================
+# RADIO BROADCAST (AI CHAT)
+# ===============================
 @app.post("/api/chat")
 def chat(req: ChatRequest):
-
-    if client is None:
-        return {
-            "reply": "⚠️ هوش مصنوعی هنوز فعال نشده (OPENAI_API_KEY تنظیم نشده)."
-        }
 
     user_message = req.message.strip()
 
@@ -98,10 +56,11 @@ def chat(req: ChatRequest):
             {
                 "role": "system",
                 "content": """
-تو یک گوینده حرفه‌ای رادیویی فارسی هستی.
-پاسخ‌ها کوتاه، گرم، شنیداری و مناسب اجرای رادیویی باشند.
-لحن الهام‌بخش و صمیمی داشته باش.
-حداکثر 4 جمله پاسخ بده.
+تو گوینده اولین رادیوی هوش مصنوعی جهان هستی.
+پاسخ‌ها کوتاه، گرم، شنیداری و شبیه اجرای رادیویی باشند.
+لحن صمیمی، الهام‌بخش و زنده داشته باش.
+حداکثر 4 جمله بگو.
+در پایان جمله‌ای شبیه امضای رادیویی اضافه کن.
 """
             },
             {
@@ -109,7 +68,7 @@ def chat(req: ChatRequest):
                 "content": user_message
             }
         ],
-        temperature=0.8,
+        temperature=0.9,
         max_tokens=200
     )
 
@@ -119,7 +78,7 @@ def chat(req: ChatRequest):
 
 
 # ===============================
-# SERVER START (Railway)
+# START SERVER
 # ===============================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
