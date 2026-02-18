@@ -18,6 +18,10 @@ class RadioRequest(BaseModel):
     topic: str
 
 
+class ChatRequest(BaseModel):
+    message: str
+
+
 # ==================================================
 # ROUTES
 # ==================================================
@@ -40,7 +44,9 @@ def status():
     return JSONResponse({"radio": "online"})
 
 
-# تولید متن برنامه رادیویی (مرحله اول Radio AI)
+# --------------------------------------------------
+# تولید متن برنامه رادیویی
+# --------------------------------------------------
 @app.post("/api/generate")
 def generate_radio(req: RadioRequest):
 
@@ -63,10 +69,31 @@ def generate_radio(req: RadioRequest):
     return {"script": script}
 
 
-# ==================================================
-# SERVER START (برای Railway)
-# ==================================================
+# --------------------------------------------------
+# CHAT API (چت داخل صفحه اصلی)
+# --------------------------------------------------
+@app.post("/api/chat")
+def chat(req: ChatRequest):
 
+    user_message = req.message.strip()
+
+    reply = f"""
+🎙️ رادیو هوش مصنوعی:
+
+درباره «{user_message}» صحبت جالبی مطرح کردی.
+
+اگر بخوایم رادیویی نگاه کنیم،
+این موضوع جاییه که تکنولوژی، احساس و داستان به هم می‌رسن.
+
+با ما همراه باش...
+"""
+
+    return {"reply": reply}
+
+
+# ==================================================
+# SERVER START (Railway Compatible)
+# ==================================================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
 
