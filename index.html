@@ -5,61 +5,77 @@
 <title>Radio AI</title>
 
 <style>
-    body {
-        background: black;
-        color: white;
-        text-align: center;
-        font-family: sans-serif;
-        margin-top: 100px;
-    }
+body {
+    background: black;
+    color: white;
+    text-align: center;
+    font-family: sans-serif;
+    margin-top: 80px;
+}
 
-    h1 {
-        font-size: 42px;
-        margin-bottom: 20px;
-    }
+h1 {
+    font-size: 42px;
+    margin-bottom: 10px;
+}
 
-    h2 {
-        font-weight: normal;
-        opacity: 0.85;
-    }
+h2 {
+    font-weight: normal;
+    opacity: 0.8;
+}
 
-    .credit {
-        margin-top: 40px;
-        font-size: 18px;
-        opacity: 0.7;
-        line-height: 1.8;
-    }
+.credit {
+    margin-top: 30px;
+    font-size: 18px;
+    opacity: 0.65;
+    line-height: 1.8;
+}
 
-    .chat-box {
-        margin: 40px auto;
-        max-width: 600px;
-        text-align: right;
-    }
+/* ---------- CHAT ---------- */
 
-    .message {
-        margin: 10px 0;
-        padding: 10px;
-        border-radius: 8px;
-        background: #111;
-    }
+.chat-box {
+    margin: 40px auto;
+    max-width: 700px;
+    text-align: right;
+}
 
-    input {
-        padding: 12px;
-        width: 65%;
-        font-size: 16px;
-        border: none;
-        border-radius: 6px;
-    }
+.message {
+    margin: 12px 0;
+    padding: 14px;
+    border-radius: 10px;
+    background: #111;
+    line-height: 1.9;
+}
 
-    button {
-        padding: 12px 20px;
-        font-size: 16px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        background: #ffffff;
-        color: black;
-    }
+.user {
+    background: #1a1a1a;
+}
+
+.ai {
+    background: #0f0f0f;
+    border-right: 3px solid #ffffff33;
+}
+
+.input-area {
+    margin-top: 40px;
+}
+
+input {
+    padding: 12px;
+    width: 60%;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+}
+
+button {
+    padding: 12px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: white;
+    color: black;
+}
 </style>
 </head>
 
@@ -75,18 +91,19 @@
 </div>
 
 
-<!-- ===== CHAT UI ===== -->
+<!-- ================= CHAT UI ================= -->
 
-<div style="margin-top:50px;">
-    <input id="message" placeholder="پیام خود را بنویسید..." />
-    <button onclick="sendMessage()">ارسال</button>
+<div class="input-area">
+    <input id="message" placeholder="موضوع برنامه را بنویسید..." />
+    <button onclick="sendMessage()">پخش</button>
 </div>
 
 <div id="chat" class="chat-box"></div>
 
 
 <script>
-/* ---------- وضعیت رادیو ---------- */
+
+/* ---------- STATUS ---------- */
 async function checkStatus() {
     try {
         const res = await fetch("/api/status");
@@ -98,8 +115,33 @@ async function checkStatus() {
             "ارتباط با رادیو برقرار نشد";
     }
 }
-
 checkStatus();
+
+
+/* ---------- ENTER KEY SEND ---------- */
+document.getElementById("message")
+.addEventListener("keypress", function(e){
+    if(e.key === "Enter"){
+        sendMessage();
+    }
+});
+
+
+/* ---------- TYPEWRITER EFFECT ---------- */
+function typeWriter(text, element){
+
+    let i = 0;
+
+    function typing(){
+        if(i < text.length){
+            element.innerHTML += text.charAt(i);
+            i++;
+            setTimeout(typing, 18);
+        }
+    }
+
+    typing();
+}
 
 
 /* ---------- CHAT ---------- */
@@ -113,33 +155,35 @@ async function sendMessage() {
 
     // پیام کاربر
     chat.innerHTML += `
-        <div class="message"><b>شما:</b> ${text}</div>
+        <div class="message user"><b>🎧 شما:</b> ${text}</div>
     `;
 
     input.value = "";
 
+    const aiDiv = document.createElement("div");
+    aiDiv.className = "message ai";
+    aiDiv.innerHTML = "<b>📻 رادیو:</b> ";
+    chat.appendChild(aiDiv);
+
+    window.scrollTo(0, document.body.scrollHeight);
+
     try {
+
         const res = await fetch("/api/chat", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ message: text })
         });
 
         const data = await res.json();
 
-        // پاسخ رادیو
-        chat.innerHTML += `
-            <div class="message"><b>Radio AI:</b> ${data.reply}</div>
-        `;
-
-        window.scrollTo(0, document.body.scrollHeight);
+        // تایپ زنده پاسخ
+        typeWriter(data.reply, aiDiv);
 
     } catch {
-        chat.innerHTML += `
-            <div class="message">خطا در ارتباط با رادیو</div>
-        `;
+
+        aiDiv.innerHTML += "خطا در ارتباط با رادیو";
+
     }
 }
 </script>
