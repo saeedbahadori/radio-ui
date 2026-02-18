@@ -1,9 +1,19 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Radio UI</title>
-</head>
 <body style="background:black;color:white;text-align:center;margin-top:100px;">
-    <h1>🚀 Radio UI is Alive</h1>
+
+<h1>🚀 Radio UI</h1>
+<p id="status">Checking radio...</p>
+
+<script>
+fetch("/api/status")
+  .then(r => r.json())
+  .then(data => {
+    document.getElementById("status").innerText =
+      "Radio status: " + data.radio;
+  })
+  .catch(() => {
+    document.getElementById("status").innerText =
+      "Radio offline";
+  });
+</script>
+
 </body>
-</html>
