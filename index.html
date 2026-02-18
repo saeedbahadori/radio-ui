@@ -6,54 +6,46 @@
 
 <style>
 body {
-    background: black;
-    color: white;
-    text-align: center;
-    font-family: sans-serif;
-    margin-top: 80px;
+    background:black;
+    color:white;
+    text-align:center;
+    font-family:sans-serif;
+    margin-top:80px;
 }
 
-h1 {
-    font-size: 42px;
-    margin-bottom: 10px;
+h1 { font-size:42px; }
+h2 { opacity:.8; }
+
+.credit{
+    margin-top:30px;
+    opacity:.65;
+    line-height:1.8;
 }
 
-h2 {
-    opacity: 0.8;
+.chat-box{
+    margin:40px auto;
+    max-width:700px;
+    text-align:right;
 }
 
-.credit {
-    margin-top: 30px;
-    font-size: 18px;
-    opacity: 0.65;
-    line-height: 1.8;
+.message{
+    margin:12px 0;
+    padding:14px;
+    border-radius:10px;
+    background:#111;
+    line-height:1.9;
 }
 
-/* CHAT */
+.user{ background:#1a1a1a; }
 
-.chat-box {
-    margin: 40px auto;
-    max-width: 700px;
-    text-align: right;
-}
-
-.message {
-    margin: 12px 0;
-    padding: 14px;
-    border-radius: 10px;
-    background: #111;
-    line-height: 1.9;
-}
-
-.user { background:#1a1a1a; }
-.ai {
+.ai{
     background:#0f0f0f;
     border-right:3px solid #ffffff33;
 }
 
-.input-area { margin-top:40px; }
+.input-area{ margin-top:40px; }
 
-input {
+input{
     padding:12px;
     width:60%;
     font-size:16px;
@@ -61,7 +53,7 @@ input {
     border-radius:6px;
 }
 
-button {
+button{
     padding:12px 20px;
     font-size:16px;
     border:none;
@@ -70,22 +62,23 @@ button {
     background:white;
     color:black;
 }
+
+audio{
+    margin-top:20px;
+    width:100%;
+}
 </style>
 </head>
 
 <body>
 
 <h1>🎙️ اولین رادیوی هوش مصنوعی در جهان</h1>
-
 <h2 id="status">در حال اتصال به رادیو...</h2>
 
 <div class="credit">
     <div>طراح: <strong>سعید بهادری</strong></div>
     <div>سفارش پروژه: <strong>زهرا قاعدی</strong></div>
 </div>
-
-
-<!-- CHAT -->
 
 <div class="input-area">
     <input id="message" placeholder="پاسخ خود را بنویسید..." />
@@ -94,7 +87,6 @@ button {
 
 <div id="chat" class="chat-box"></div>
 
-
 <script>
 
 /* ================= SESSION ================= */
@@ -102,13 +94,13 @@ const SESSION_ID = crypto.randomUUID();
 
 
 /* ---------- STATUS ---------- */
-async function checkStatus() {
-    try {
+async function checkStatus(){
+    try{
         const res = await fetch("/api/status");
         const data = await res.json();
         document.getElementById("status").innerText =
             "وضعیت رادیو: " + data.radio;
-    } catch {
+    }catch{
         document.getElementById("status").innerText =
             "ارتباط با رادیو برقرار نشد";
     }
@@ -118,102 +110,125 @@ checkStatus();
 
 /* ---------- ENTER SEND ---------- */
 document.getElementById("message")
-.addEventListener("keydown", e => {
-    if(e.key === "Enter") sendMessage();
+.addEventListener("keydown", e=>{
+    if(e.key==="Enter") sendMessage();
 });
 
 
 /* ---------- TYPEWRITER ---------- */
 function typeWriter(text, element){
 
-    let i = 0;
+    let i=0;
 
     function typing(){
-        if(i < text.length){
+        if(i<text.length){
             element.innerHTML += text.charAt(i);
             i++;
             setTimeout(typing,15);
         }
     }
-
     typing();
 }
 
 
 /* ---------- ADD MESSAGE ---------- */
-function addMessage(role, text){
+function addMessage(role,text=""){
 
-    const chat = document.getElementById("chat");
+    const chat=document.getElementById("chat");
 
-    const div = document.createElement("div");
-    div.className = "message " + role;
+    const div=document.createElement("div");
+    div.className="message "+role;
 
-    if(role === "user")
-        div.innerHTML = `<b>🎧 شما:</b> ${text}`;
+    if(role==="user")
+        div.innerHTML=`<b>🎧 شما:</b> ${text}`;
     else
-        div.innerHTML = `<b>📻 رادیو:</b> `;
+        div.innerHTML=`<b>📻 رادیو:</b> `;
 
     chat.appendChild(div);
 
     window.scrollTo({
-        top: document.body.scrollHeight,
-        behavior: "smooth"
+        top:document.body.scrollHeight,
+        behavior:"smooth"
     });
 
     return div;
 }
 
 
+/* ---------- ADD AUDIO PLAYER ---------- */
+function addAudioPlayer(url){
+
+    const chat=document.getElementById("chat");
+
+    const wrapper=document.createElement("div");
+    wrapper.className="message ai";
+
+    wrapper.innerHTML = `
+        <b>🎧 خروجی صوتی:</b><br>
+        <audio controls autoplay src="${url}"></audio>
+    `;
+
+    chat.appendChild(wrapper);
+}
+
+
 /* ---------- CHAT ---------- */
 async function sendMessage(){
 
-    const input = document.getElementById("message");
-    const text = input.value.trim();
+    const input=document.getElementById("message");
+    const text=input.value.trim();
     if(!text) return;
 
-    addMessage("user", text);
-    input.value = "";
+    addMessage("user",text);
+    input.value="";
 
-    const aiDiv = addMessage("ai","");
+    const aiDiv=addMessage("ai");
 
-    try {
+    try{
 
-        const res = await fetch("/api/chat",{
+        const res=await fetch("/api/chat",{
             method:"POST",
             headers:{ "Content-Type":"application/json" },
-            body: JSON.stringify({
+            body:JSON.stringify({
                 message:text,
                 session_id:SESSION_ID
             })
         });
 
-        const data = await res.json();
+        const data=await res.json();
 
-        typeWriter(data.reply, aiDiv);
+        typeWriter(data.reply,aiDiv);
 
-    } catch {
-        aiDiv.innerHTML += "خطا در ارتباط با رادیو";
+        // ⭐ اگر فایل صوتی آمد
+        if(data.audio_url){
+            setTimeout(()=>{
+                addAudioPlayer(data.audio_url);
+            },800);
+        }
+
+    }catch{
+        aiDiv.innerHTML+="خطا در ارتباط با رادیو";
     }
 }
 
 
 /* ---------- START CONVERSATION ---------- */
-window.onload = async () => {
+window.onload=async()=>{
 
-    const aiDiv = addMessage("ai","");
+    const aiDiv=addMessage("ai");
 
-    const res = await fetch("/api/chat",{
+    const res=await fetch("/api/chat",{
         method:"POST",
         headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({
+        body:JSON.stringify({
             message:"شروع",
             session_id:SESSION_ID
         })
     });
 
-    const data = await res.json();
+    const data=await res.json();
 
-    typeWriter(data.reply, aiDiv);
+    typeWriter(data.reply,aiDiv);
 };
 
 </script>
