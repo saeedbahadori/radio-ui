@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Radio AI</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600&display=swap" rel="stylesheet">
 
@@ -33,20 +32,6 @@ body{
     background:#1c1c1e;
 }
 
-.header{
-    padding:16px;
-    background:#2c2c2e;
-    text-align:center;
-    font-weight:600;
-}
-
-.credits{
-    text-align:center;
-    font-size:12px;
-    color:#aaa;
-    padding:8px 0;
-}
-
 .chat-area{
     flex:1;
     overflow-y:auto;
@@ -60,9 +45,9 @@ body{
     padding:14px;
     border-radius:16px;
     max-width:85%;
-    font-size:14px;
     line-height:1.9;
     text-align:justify;
+    white-space:pre-line;
 }
 
 .user{
@@ -73,50 +58,6 @@ body{
 .ai{
     align-self:flex-end;
     background:#6a5acd;
-}
-
-.voice-container{
-    display:flex;
-    gap:10px;
-    margin-top:10px;
-    flex-wrap:wrap;
-}
-
-.voice-card{
-    background:#2c2c2e;
-    padding:8px 12px;
-    border-radius:12px;
-    cursor:pointer;
-    font-size:13px;
-    transition:.2s;
-}
-
-.voice-card:hover{
-    background:#6a5acd;
-}
-
-.audio-wrapper{
-    background:#6a5acd;
-    padding:12px;
-    border-radius:16px;
-    max-width:85%;
-    align-self:flex-end;
-}
-
-audio{
-    width:100%;
-    margin-top:8px;
-}
-
-.download-btn{
-    display:inline-block;
-    margin-top:8px;
-    padding:6px 12px;
-    background:white;
-    color:black;
-    border-radius:8px;
-    font-size:12px;
-    text-decoration:none;
 }
 
 .input-area{
@@ -142,6 +83,25 @@ button{
     cursor:pointer;
 }
 
+.voice-container{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-top:8px;
+}
+
+.voice-card{
+    background:#2c2c2e;
+    padding:8px 12px;
+    border-radius:12px;
+    cursor:pointer;
+}
+
+audio{
+    width:100%;
+    margin-top:8px;
+}
+
 </style>
 </head>
 
@@ -149,22 +109,12 @@ button{
 
 <div class="app">
 
-    <div class="header">
-        🎙️ اولین رادیوی هوش مصنوعی جهان
-    </div>
+<div id="chat" class="chat-area"></div>
 
-    <div class="credits">
-        طراحی و اجرا: سعید بهادری<br>
-        مجری طرح: زهرا قاعدی<br>
-        گرافیک: لادن ره‌آرد
-    </div>
-
-    <div id="chat" class="chat-area"></div>
-
-    <div class="input-area">
-        <input id="message" placeholder="پاسخ خود را بنویسید..." />
-        <button onclick="sendMessage()">ارسال</button>
-    </div>
+<div class="input-area">
+<input id="message" placeholder="پاسخ خود را بنویسید..." />
+<button onclick="sendMessage()">ارسال</button>
+</div>
 
 </div>
 
@@ -172,21 +122,21 @@ button{
 
 const SESSION_ID = crypto.randomUUID();
 
-/* TYPE EFFECT */
-
 function typeWriter(text, element){
     let i = 0;
     function typing(){
         if(i < text.length){
-            element.innerHTML += text.charAt(i);
+            if(text[i] === "\n"){
+                element.innerHTML += "<br>";
+            } else {
+                element.innerHTML += text[i];
+            }
             i++;
-            setTimeout(typing, 15);
+            setTimeout(typing, 10);
         }
     }
     typing();
 }
-
-/* ADD MESSAGE */
 
 function addMessage(role,text){
     const chat=document.getElementById("chat");
@@ -198,16 +148,13 @@ function addMessage(role,text){
     return div;
 }
 
-/* ADD VOICE OPTIONS */
-
 function addVoiceOptions(){
 
     const chat=document.getElementById("chat");
-
     const container=document.createElement("div");
     container.className="voice-container";
 
-    const voices = {
+    const voices={
         alloy:"👨 مرد رسمی",
         verse:"👩 زن ملایم",
         echo:"🎙 مرد گرم",
@@ -223,10 +170,7 @@ function addVoiceOptions(){
     }
 
     chat.appendChild(container);
-    chat.scrollTop=chat.scrollHeight;
 }
-
-/* GENERATE AUDIO */
 
 async function generateAudio(voice){
 
@@ -234,7 +178,7 @@ async function generateAudio(voice){
         method:"POST",
         headers:{ "Content-Type":"application/json" },
         body:JSON.stringify({
-            message:"voice_selected",
+            message:"انتخاب صدا",
             session_id:SESSION_ID,
             voice:voice
         })
@@ -245,30 +189,12 @@ async function generateAudio(voice){
     addMessage("ai", data.reply);
 
     if(data.audio_url){
-        addAudioPlayer(data.audio_url);
+        const audio=document.createElement("audio");
+        audio.controls=true;
+        audio.src=data.audio_url;
+        document.getElementById("chat").appendChild(audio);
     }
 }
-
-/* AUDIO */
-
-function addAudioPlayer(url){
-
-    const chat=document.getElementById("chat");
-
-    const wrapper=document.createElement("div");
-    wrapper.className="audio-wrapper";
-
-    wrapper.innerHTML=`
-        🎧 خروجی صوتی
-        <audio controls autoplay src="${url}"></audio>
-        <a class="download-btn" href="${url}" download>دانلود فایل صوتی</a>
-    `;
-
-    chat.appendChild(wrapper);
-    chat.scrollTop=chat.scrollHeight;
-}
-
-/* CHAT */
 
 async function sendMessage(){
 
@@ -290,16 +216,20 @@ async function sendMessage(){
 
     const data=await res.json();
 
-    const aiDiv = addMessage("ai", data.reply);
+    addMessage("ai",data.reply);
 
-    // اگر متن آماده شده و باید صدا انتخاب شود
     if(data.reply.includes("پخش شود")){
         addVoiceOptions();
     }
-
 }
 
-/* START */
+document.getElementById("message")
+.addEventListener("keydown", e=>{
+    if(e.key==="Enter"){
+        e.preventDefault();
+        sendMessage();
+    }
+});
 
 window.onload=async()=>{
     const res=await fetch("/api/chat",{
