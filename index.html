@@ -32,6 +32,24 @@ body{
     background:#1c1c1e;
 }
 
+/* HEADER */
+
+.header{
+    padding:16px;
+    background:#2c2c2e;
+    text-align:center;
+    font-weight:600;
+}
+
+.credits{
+    text-align:center;
+    font-size:12px;
+    color:#aaa;
+    padding:8px 0;
+}
+
+/* CHAT */
+
 .chat-area{
     flex:1;
     overflow-y:auto;
@@ -60,6 +78,44 @@ body{
     background:#6a5acd;
 }
 
+/* VOICE */
+
+.voice-container{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-top:8px;
+}
+
+.voice-card{
+    background:#2c2c2e;
+    padding:8px 12px;
+    border-radius:12px;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.voice-card:hover{
+    background:#6a5acd;
+}
+
+/* AUDIO */
+
+.audio-wrapper{
+    background:#6a5acd;
+    padding:12px;
+    border-radius:16px;
+    max-width:85%;
+    align-self:flex-end;
+}
+
+audio{
+    width:100%;
+    margin-top:8px;
+}
+
+/* INPUT */
+
 .input-area{
     padding:12px;
     background:#2c2c2e;
@@ -83,31 +139,22 @@ button{
     cursor:pointer;
 }
 
-.voice-container{
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-    margin-top:8px;
-}
-
-.voice-card{
-    background:#2c2c2e;
-    padding:8px 12px;
-    border-radius:12px;
-    cursor:pointer;
-}
-
-audio{
-    width:100%;
-    margin-top:8px;
-}
-
 </style>
 </head>
 
 <body>
 
 <div class="app">
+
+<div class="header">
+🎙️ اولین رادیوی هوش مصنوعی جهان
+</div>
+
+<div class="credits">
+طراحی و اجرا: سعید بهادری<br>
+مجری طرح: زهرا قاعدی<br>
+گرافیک: لادن ره‌آرد
+</div>
 
 <div id="chat" class="chat-area"></div>
 
@@ -122,6 +169,8 @@ audio{
 
 const SESSION_ID = crypto.randomUUID();
 
+/* TYPEWRITER */
+
 function typeWriter(text, element){
     let i = 0;
     function typing(){
@@ -132,11 +181,13 @@ function typeWriter(text, element){
                 element.innerHTML += text[i];
             }
             i++;
-            setTimeout(typing, 10);
+            setTimeout(typing, 30); // سرعت منطقی‌تر
         }
     }
     typing();
 }
+
+/* ADD MESSAGE */
 
 function addMessage(role,text){
     const chat=document.getElementById("chat");
@@ -148,9 +199,12 @@ function addMessage(role,text){
     return div;
 }
 
+/* VOICE OPTIONS */
+
 function addVoiceOptions(){
 
     const chat=document.getElementById("chat");
+
     const container=document.createElement("div");
     container.className="voice-container";
 
@@ -170,7 +224,28 @@ function addVoiceOptions(){
     }
 
     chat.appendChild(container);
+    chat.scrollTop=chat.scrollHeight;
 }
+
+/* AUDIO */
+
+function addAudioPlayer(url){
+
+    const chat=document.getElementById("chat");
+
+    const wrapper=document.createElement("div");
+    wrapper.className="audio-wrapper";
+
+    wrapper.innerHTML=`
+        🎧 خروجی صوتی
+        <audio controls autoplay src="${url}"></audio>
+    `;
+
+    chat.appendChild(wrapper);
+    chat.scrollTop=chat.scrollHeight;
+}
+
+/* GENERATE AUDIO */
 
 async function generateAudio(voice){
 
@@ -189,12 +264,11 @@ async function generateAudio(voice){
     addMessage("ai", data.reply);
 
     if(data.audio_url){
-        const audio=document.createElement("audio");
-        audio.controls=true;
-        audio.src=data.audio_url;
-        document.getElementById("chat").appendChild(audio);
+        addAudioPlayer(data.audio_url);
     }
 }
+
+/* SEND MESSAGE */
 
 async function sendMessage(){
 
@@ -218,10 +292,13 @@ async function sendMessage(){
 
     addMessage("ai",data.reply);
 
+    // اگر وارد مرحله انتخاب صدا شد
     if(data.reply.includes("پخش شود")){
         addVoiceOptions();
     }
 }
+
+/* ENTER KEY */
 
 document.getElementById("message")
 .addEventListener("keydown", e=>{
@@ -230,6 +307,8 @@ document.getElementById("message")
         sendMessage();
     }
 });
+
+/* START */
 
 window.onload=async()=>{
     const res=await fetch("/api/chat",{
