@@ -9,9 +9,6 @@ from openai import OpenAI
 
 app = FastAPI()
 
-# ===============================
-# OpenAI
-# ===============================
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -21,7 +18,7 @@ os.makedirs(AUDIO_DIR, exist_ok=True)
 sessions = {}
 
 # ===============================
-# MODELS
+# MODEL
 # ===============================
 
 class ChatRequest(BaseModel):
@@ -44,7 +41,7 @@ def status():
 
 
 # ===============================
-# MAIN RADIO FLOW
+# MAIN FLOW
 # ===============================
 
 @app.post("/api/chat")
@@ -59,25 +56,21 @@ def chat(req: ChatRequest):
 
     state = sessions[session_id]
 
-    # STEP 1
     if state["step"] == "program_name":
         state["program_name"] = user_message
         state["step"] = "topic"
         return {"reply": "موضوع برنامه درباره چی باشه؟"}
 
-    # STEP 2
     elif state["step"] == "topic":
         state["topic"] = user_message
         state["step"] = "tone"
-        return {"reply": "چه لحنی می‌خوای؟ (صمیمی، رسمی، انگیزشی، داستانی)"}
+        return {"reply": "چه لحنی می‌خوای؟"}
 
-    # STEP 3
     elif state["step"] == "tone":
         state["tone"] = user_message
         state["step"] = "duration"
         return {"reply": "مدت زمان برنامه چند دقیقه باشه؟"}
 
-    # STEP 4
     elif state["step"] == "duration":
         state["duration"] = user_message
         state["step"] = "confirm"
@@ -95,20 +88,18 @@ def chat(req: ChatRequest):
 """
         }
 
-    # STEP 5 — GENERATE SCRIPT
     elif state["step"] == "confirm":
 
         if "بله" not in user_message:
             state["step"] = "program_name"
-            return {"reply": "باشه، از اول شروع کنیم. اسم برنامه چیه؟"}
+            return {"reply": "باشه از اول شروع کنیم. اسم برنامه چیه؟"}
 
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": f"""
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": f"""
 تو نویسنده حرفه‌ای رادیو هستی.
 
 نام برنامه: {state['program_name']}
@@ -116,33 +107,24 @@ def chat(req: ChatRequest):
 لحن: {state['tone']}
 مدت: {state['duration']} دقیقه
 
-قوانین:
-- فقط متن گوینده را بنویس.
-- هیچ توضیح صحنه، براکت یا پرانتز ننویس.
-- متن کاملاً آماده خواندن باشد.
+فقط متن گوینده را بنویس.
+هیچ توضیح صحنه یا پرانتز ننویس.
 """
-                    }
-                ],
-                temperature=0.9,
-                max_tokens=1000
-            )
+                }
+            ],
+            temperature=0.9,
+            max_tokens=900
+        )
 
-            script = response.choices[0].message.content
-
-        except Exception as e:
-            return JSONResponse(
-                status_code=500,
-                content={"reply": f"خطا در تولید متن: {str(e)}"}
-            )
+        script = response.choices[0].message.content
 
         state["final_script"] = script
         state["step"] = "voice_select"
 
         return {
-            "reply": script + "\n\n🎧 با چه صدایی پخش شود؟ یکی از گزینه‌های بالا را انتخاب کن."
+            "reply": script + "\n\n🎧 با چه صدایی پخش شود؟"
         }
 
-    # STEP 6 — VOICE SELECT
     elif state["step"] == "voice_select":
 
         if not req.voice:
@@ -150,33 +132,22 @@ def chat(req: ChatRequest):
 
         text = state["final_script"]
 
-        # ===============================
-        # CLEAN BEFORE TTS
-        # ===============================
+        # پاکسازی قبل از TTS
         text = re.sub(r"\(.*?\)", "", text)
         text = re.sub(r"\[.*?\]", "", text)
         text = re.sub(r"\*.*?\*", "", text)
-        text = re.sub(r"—.*", "", text)
         text = re.sub(r"\n{2,}", "\n", text)
         text = text.strip()
 
         file_id = str(uuid.uuid4())
         file_path = os.path.join(AUDIO_DIR, f"{file_id}.mp3")
 
-        try:
-            with client.audio.speech.with_streaming_response.create(
-                model="gpt-4o-mini-tts",
-                voice=req.voice,
-                input=text
-            ) as response:
-
-                response.stream_to_file(file_path)
-
-        except Exception as e:
-            return JSONResponse(
-                status_code=500,
-                content={"reply": f"خطا در تولید صدا: {str(e)}"}
-            )
+        with client.audio.speech.with_streaming_response.create(
+            model="gpt-4o-mini-tts",
+            voice=req.voice,
+            input=text
+        ) as response:
+            response.stream_to_file(file_path)
 
         sessions.pop(session_id, None)
 
@@ -185,14 +156,9 @@ def chat(req: ChatRequest):
             "audio_url": f"/audio/{file_id}.mp3"
         }
 
-    # RESET
     sessions.pop(session_id, None)
-    return {"reply": "برنامه جدیدی شروع کنیم. اسم برنامه چیه؟"}
+    return {"reply": "برنامه جدیدی شروع کنیم."}
 
-
-# ===============================
-# AUDIO ROUTE
-# ===============================
 
 @app.get("/audio/{filename}")
 def get_audio(filename: str):
@@ -201,10 +167,6 @@ def get_audio(filename: str):
         return JSONResponse(status_code=404, content={"error": "file not found"})
     return FileResponse(path)
 
-
-# ===============================
-# START SERVER
-# ===============================
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
