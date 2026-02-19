@@ -1,5 +1,6 @@
 import os
 import uuid
+import re
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
@@ -36,7 +37,6 @@ class ChatRequest(BaseModel):
 @app.get("/")
 def home():
     return FileResponse(os.path.join(BASE_DIR, "index.html"))
-
 
 @app.get("/api/status")
 def status():
@@ -88,7 +88,6 @@ def chat(req: ChatRequest):
 لحن: {state['tone']}
 مدت: {state['duration']} دقیقه
 """
-
         return {
             "reply": f"👌 مشخصات برنامه:\n{summary}\nاگر تایید می‌کنی بنویس «بله»."
         }
@@ -102,7 +101,7 @@ def chat(req: ChatRequest):
 
         try:
             response = client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4o",  # اگر دسترسی داری می‌تونی بزاری gpt-5.2
                 messages=[
                     {
                         "role": "system",
@@ -114,7 +113,10 @@ def chat(req: ChatRequest):
 لحن: {state['tone']}
 مدت: {state['duration']} دقیقه
 
-یک متن کامل، طبیعی و آماده اجرای رادیویی بنویس.
+قوانین مهم:
+- فقط متن گوینده را بنویس.
+- هیچ توضیح صحنه، براکت، پرانتز یا دستور اجرایی ننویس.
+- متن کاملاً آماده خواندن باشد.
 """
                     }
                 ],
@@ -144,6 +146,17 @@ def chat(req: ChatRequest):
             return {"reply": "برای دریافت فایل صوتی بنویس «تولید صدا»."}
 
         text = state["final_script"]
+
+        # ===============================
+        # CLEAN SCRIPT BEFORE TTS
+        # ===============================
+        text = re.sub(r"\(.*?\)", "", text)       # حذف (پرانتز)
+        text = re.sub(r"\[.*?\]", "", text)       # حذف [براکت]
+        text = re.sub(r"\*.*?\*", "", text)       # حذف *متن*
+        text = re.sub(r"—.*", "", text)           # حذف توضیحات خطی
+        text = re.sub(r"\n{2,}", "\n", text)      # حذف فاصله اضافی
+        text = text.strip()
+
         file_id = str(uuid.uuid4())
         file_path = os.path.join(AUDIO_DIR, f"{file_id}.mp3")
 
@@ -192,7 +205,6 @@ def get_audio(filename: str):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-
     uvicorn.run(
         "server:app",
         host="0.0.0.0",
