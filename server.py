@@ -18,7 +18,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 AUDIO_DIR = os.path.join(BASE_DIR, "audio")
 os.makedirs(AUDIO_DIR, exist_ok=True)
 
-# حافظه سشن‌ها
 sessions = {}
 
 # ===============================
@@ -28,6 +27,7 @@ sessions = {}
 class ChatRequest(BaseModel):
     message: str
     session_id: str
+    voice: str | None = None
 
 
 # ===============================
@@ -44,7 +44,7 @@ def status():
 
 
 # ===============================
-# RADIO FLOW
+# MAIN RADIO FLOW
 # ===============================
 
 @app.post("/api/chat")
@@ -59,37 +59,40 @@ def chat(req: ChatRequest):
 
     state = sessions[session_id]
 
-    # STEP 1 — PROGRAM NAME
+    # STEP 1
     if state["step"] == "program_name":
         state["program_name"] = user_message
         state["step"] = "topic"
         return {"reply": "موضوع برنامه درباره چی باشه؟"}
 
-    # STEP 2 — TOPIC
+    # STEP 2
     elif state["step"] == "topic":
         state["topic"] = user_message
         state["step"] = "tone"
         return {"reply": "چه لحنی می‌خوای؟ (صمیمی، رسمی، انگیزشی، داستانی)"}
 
-    # STEP 3 — TONE
+    # STEP 3
     elif state["step"] == "tone":
         state["tone"] = user_message
         state["step"] = "duration"
         return {"reply": "مدت زمان برنامه چند دقیقه باشه؟"}
 
-    # STEP 4 — DURATION
+    # STEP 4
     elif state["step"] == "duration":
         state["duration"] = user_message
         state["step"] = "confirm"
 
-        summary = f"""
-نام برنامه: {state['program_name']}
+        return {
+            "reply": f"""
+👌 مشخصات برنامه:
+
+نام: {state['program_name']}
 موضوع: {state['topic']}
 لحن: {state['tone']}
 مدت: {state['duration']} دقیقه
+
+اگر تایید می‌کنی بنویس «بله».
 """
-        return {
-            "reply": f"👌 مشخصات برنامه:\n{summary}\nاگر تایید می‌کنی بنویس «بله»."
         }
 
     # STEP 5 — GENERATE SCRIPT
@@ -101,7 +104,7 @@ def chat(req: ChatRequest):
 
         try:
             response = client.chat.completions.create(
-                model="gpt-4o",  # اگر دسترسی داری می‌تونی بزاری gpt-5.2
+                model="gpt-4o",
                 messages=[
                     {
                         "role": "system",
@@ -113,9 +116,9 @@ def chat(req: ChatRequest):
 لحن: {state['tone']}
 مدت: {state['duration']} دقیقه
 
-قوانین مهم:
+قوانین:
 - فقط متن گوینده را بنویس.
-- هیچ توضیح صحنه، براکت، پرانتز یا دستور اجرایی ننویس.
+- هیچ توضیح صحنه، براکت یا پرانتز ننویس.
 - متن کاملاً آماده خواندن باشد.
 """
                     }
@@ -133,28 +136,28 @@ def chat(req: ChatRequest):
             )
 
         state["final_script"] = script
-        state["step"] = "ready_for_audio"
+        state["step"] = "voice_select"
 
         return {
-            "reply": script + "\n\nاگر تایید نهایی است بنویس «تولید صدا»."
+            "reply": script + "\n\n🎧 با چه صدایی پخش شود؟ یکی از گزینه‌های بالا را انتخاب کن."
         }
 
-    # STEP 6 — GENERATE AUDIO
-    elif state["step"] == "ready_for_audio":
+    # STEP 6 — VOICE SELECT
+    elif state["step"] == "voice_select":
 
-        if "تولید صدا" not in user_message:
-            return {"reply": "برای دریافت فایل صوتی بنویس «تولید صدا»."}
+        if not req.voice:
+            return {"reply": "لطفاً یکی از صداها را انتخاب کن."}
 
         text = state["final_script"]
 
         # ===============================
-        # CLEAN SCRIPT BEFORE TTS
+        # CLEAN BEFORE TTS
         # ===============================
-        text = re.sub(r"\(.*?\)", "", text)       # حذف (پرانتز)
-        text = re.sub(r"\[.*?\]", "", text)       # حذف [براکت]
-        text = re.sub(r"\*.*?\*", "", text)       # حذف *متن*
-        text = re.sub(r"—.*", "", text)           # حذف توضیحات خطی
-        text = re.sub(r"\n{2,}", "\n", text)      # حذف فاصله اضافی
+        text = re.sub(r"\(.*?\)", "", text)
+        text = re.sub(r"\[.*?\]", "", text)
+        text = re.sub(r"\*.*?\*", "", text)
+        text = re.sub(r"—.*", "", text)
+        text = re.sub(r"\n{2,}", "\n", text)
         text = text.strip()
 
         file_id = str(uuid.uuid4())
@@ -163,7 +166,7 @@ def chat(req: ChatRequest):
         try:
             with client.audio.speech.with_streaming_response.create(
                 model="gpt-4o-mini-tts",
-                voice="alloy",
+                voice=req.voice,
                 input=text
             ) as response:
 
@@ -193,10 +196,10 @@ def chat(req: ChatRequest):
 
 @app.get("/audio/{filename}")
 def get_audio(filename: str):
-    file_path = os.path.join(AUDIO_DIR, filename)
-    if not os.path.exists(file_path):
+    path = os.path.join(AUDIO_DIR, filename)
+    if not os.path.exists(path):
         return JSONResponse(status_code=404, content={"error": "file not found"})
-    return FileResponse(file_path)
+    return FileResponse(path)
 
 
 # ===============================
@@ -205,9 +208,4 @@ def get_audio(filename: str):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    uvicorn.run(
-        "server:app",
-        host="0.0.0.0",
-        port=port,
-        reload=False
-    )
+    uvicorn.run("server:app", host="0.0.0.0", port=port)
