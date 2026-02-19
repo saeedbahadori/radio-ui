@@ -33,7 +33,7 @@ body{
     background:#1c1c1e;
 }
 
-/* ---------- HEADER ---------- */
+/* HEADER */
 
 .header{
     padding:16px;
@@ -43,7 +43,7 @@ body{
     font-size:16px;
 }
 
-/* ---------- CREDITS ---------- */
+/* CREDITS */
 
 .credits{
     text-align:center;
@@ -53,7 +53,48 @@ body{
     background:#1c1c1e;
 }
 
-/* ---------- CHAT AREA ---------- */
+/* VOICE PICKER */
+
+.voice-picker{
+    padding:10px;
+    display:flex;
+    gap:10px;
+    overflow-x:auto;
+    background:#1c1c1e;
+}
+
+.voice-card{
+    min-width:150px;
+    background:#2c2c2e;
+    padding:10px;
+    border-radius:14px;
+    display:flex;
+    gap:8px;
+    cursor:pointer;
+    transition:.2s;
+    border:2px solid transparent;
+}
+
+.voice-card.active{
+    border:2px solid #6a5acd;
+    background:#3a3a3c;
+}
+
+.avatar{
+    font-size:22px;
+}
+
+.voice-name{
+    font-weight:600;
+    font-size:13px;
+}
+
+.voice-desc{
+    font-size:11px;
+    opacity:.6;
+}
+
+/* CHAT */
 
 .chat-area{
     flex:1;
@@ -63,8 +104,6 @@ body{
     flex-direction:column;
     gap:10px;
 }
-
-/* ---------- MESSAGES ---------- */
 
 .message{
     padding:12px 14px;
@@ -85,7 +124,7 @@ body{
     color:white;
 }
 
-/* ---------- AUDIO BLOCK ---------- */
+/* AUDIO */
 
 .audio-wrapper{
     background:#6a5acd;
@@ -111,7 +150,7 @@ audio{
     text-decoration:none;
 }
 
-/* ---------- INPUT AREA ---------- */
+/* INPUT */
 
 .input-area{
     padding:12px;
@@ -137,8 +176,6 @@ button{
     cursor:pointer;
 }
 
-/* ---------- MOBILE FIX ---------- */
-
 @media(max-width:600px){
     .app{
         max-width:100%;
@@ -162,6 +199,44 @@ button{
         گرافیک: لادن ره‌آرد
     </div>
 
+    <!-- VOICE PICKER -->
+
+    <div class="voice-picker">
+
+        <div class="voice-card active" data-voice="alloy">
+            <div class="avatar">👨</div>
+            <div>
+                <div class="voice-name">مرد رسمی</div>
+                <div class="voice-desc">اخباری، جدی</div>
+            </div>
+        </div>
+
+        <div class="voice-card" data-voice="verse">
+            <div class="avatar">👩</div>
+            <div>
+                <div class="voice-name">زن ملایم</div>
+                <div class="voice-desc">آرام، صمیمی</div>
+            </div>
+        </div>
+
+        <div class="voice-card" data-voice="echo">
+            <div class="avatar">🎙</div>
+            <div>
+                <div class="voice-name">مرد گرم</div>
+                <div class="voice-desc">رادیویی، احساسی</div>
+            </div>
+        </div>
+
+        <div class="voice-card" data-voice="nova">
+            <div class="avatar">🎧</div>
+            <div>
+                <div class="voice-name">زن جدی</div>
+                <div class="voice-desc">مستند، رسمی</div>
+            </div>
+        </div>
+
+    </div>
+
     <div id="chat" class="chat-area"></div>
 
     <div class="input-area">
@@ -174,24 +249,34 @@ button{
 <script>
 
 const SESSION_ID = crypto.randomUUID();
+let selectedVoice = "alloy";
 
-/* ---------- ADD MESSAGE ---------- */
+/* VOICE SELECTOR */
+
+document.querySelectorAll(".voice-card").forEach(card=>{
+    card.addEventListener("click",()=>{
+        document.querySelectorAll(".voice-card")
+        .forEach(c=>c.classList.remove("active"));
+
+        card.classList.add("active");
+        selectedVoice = card.dataset.voice;
+    });
+});
+
+/* ADD MESSAGE */
 
 function addMessage(role,text){
     const chat=document.getElementById("chat");
-
     const div=document.createElement("div");
     div.className="message "+role;
     div.innerText=text;
-
     chat.appendChild(div);
     chat.scrollTop=chat.scrollHeight;
 }
 
-/* ---------- ADD AUDIO ---------- */
+/* ADD AUDIO */
 
 function addAudioPlayer(url){
-
     const chat=document.getElementById("chat");
 
     const wrapper=document.createElement("div");
@@ -207,7 +292,7 @@ function addAudioPlayer(url){
     chat.scrollTop=chat.scrollHeight;
 }
 
-/* ---------- CHAT ---------- */
+/* CHAT */
 
 async function sendMessage(){
 
@@ -225,7 +310,8 @@ async function sendMessage(){
             headers:{ "Content-Type":"application/json" },
             body:JSON.stringify({
                 message:text,
-                session_id:SESSION_ID
+                session_id:SESSION_ID,
+                voice:selectedVoice
             })
         });
 
@@ -242,23 +328,23 @@ async function sendMessage(){
     }
 }
 
-/* ---------- ENTER SEND ---------- */
+/* ENTER SEND */
 
 document.getElementById("message")
 .addEventListener("keydown",e=>{
     if(e.key==="Enter") sendMessage();
 });
 
-/* ---------- START ---------- */
+/* START */
 
 window.onload=async()=>{
-
     const res=await fetch("/api/chat",{
         method:"POST",
         headers:{ "Content-Type":"application/json" },
         body:JSON.stringify({
             message:"شروع",
-            session_id:SESSION_ID
+            session_id:SESSION_ID,
+            voice:selectedVoice
         })
     });
 
