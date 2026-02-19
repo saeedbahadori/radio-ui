@@ -8,27 +8,48 @@
 body {
     background:black;
     color:white;
-    text-align:center;
+    margin:0;
     font-family:sans-serif;
-    margin-top:80px;
 }
 
-h1 { font-size:42px; }
-h2 { opacity:.8; }
-
-.credit{
-    margin-top:30px;
-    opacity:.65;
-    line-height:1.8;
+.app-container {
+    max-width:900px;
+    margin:auto;
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
 }
 
-.chat-box{
-    margin:40px auto;
+.header {
+    padding:20px;
+    border-bottom:1px solid #222;
+    text-align:center;
+}
+
+.header h1 {
+    margin:0;
+    font-size:32px;
+}
+
+#status {
+    margin-top:10px;
+    opacity:.7;
+    font-size:14px;
+}
+
+.main {
+    flex:1;
+    padding:20px;
+    overflow-y:auto;
+}
+
+.chat-box {
     max-width:700px;
+    margin:auto;
     text-align:right;
 }
 
-.message{
+.message {
     margin:12px 0;
     padding:14px;
     border-radius:10px;
@@ -36,24 +57,30 @@ h2 { opacity:.8; }
     line-height:1.9;
 }
 
-.user{ background:#1a1a1a; }
+.user { background:#1a1a1a; }
 
-.ai{
+.ai {
     background:#0f0f0f;
     border-right:3px solid #ffffff33;
 }
 
-.input-area{ margin-top:40px; }
+.footer {
+    padding:20px;
+    border-top:1px solid #222;
+    display:flex;
+    gap:10px;
+    justify-content:center;
+}
 
-input{
+input {
+    flex:1;
     padding:12px;
-    width:60%;
     font-size:16px;
     border:none;
     border-radius:6px;
 }
 
-button{
+button {
     padding:12px 20px;
     font-size:16px;
     border:none;
@@ -63,8 +90,8 @@ button{
     color:black;
 }
 
-audio{
-    margin-top:20px;
+audio {
+    margin-top:15px;
     width:100%;
 }
 </style>
@@ -72,26 +99,27 @@ audio{
 
 <body>
 
-<h1>🎙️ اولین رادیوی هوش مصنوعی در جهان</h1>
-<h2 id="status">در حال اتصال به رادیو...</h2>
+<div class="app-container">
 
-<div class="credit">
-    <div>طراح: <strong>سعید بهادری</strong></div>
-    <div>سفارش پروژه: <strong>زهرا قاعدی</strong></div>
+    <header class="header">
+        <h1>🎙️ اولین رادیوی هوش مصنوعی</h1>
+        <div id="status">در حال اتصال به رادیو...</div>
+    </header>
+
+    <main class="main">
+        <div id="chat" class="chat-box"></div>
+    </main>
+
+    <footer class="footer">
+        <input id="message" placeholder="پاسخ خود را بنویسید..." />
+        <button onclick="sendMessage()">ارسال</button>
+    </footer>
+
 </div>
-
-<div class="input-area">
-    <input id="message" placeholder="پاسخ خود را بنویسید..." />
-    <button onclick="sendMessage()">ارسال</button>
-</div>
-
-<div id="chat" class="chat-box"></div>
 
 <script>
 
-/* ================= SESSION ================= */
 const SESSION_ID = crypto.randomUUID();
-
 
 /* ---------- STATUS ---------- */
 async function checkStatus(){
@@ -107,19 +135,15 @@ async function checkStatus(){
 }
 checkStatus();
 
-
 /* ---------- ENTER SEND ---------- */
 document.getElementById("message")
 .addEventListener("keydown", e=>{
     if(e.key==="Enter") sendMessage();
 });
 
-
 /* ---------- TYPEWRITER ---------- */
 function typeWriter(text, element){
-
     let i=0;
-
     function typing(){
         if(i<text.length){
             element.innerHTML += text.charAt(i);
@@ -130,12 +154,9 @@ function typeWriter(text, element){
     typing();
 }
 
-
 /* ---------- ADD MESSAGE ---------- */
 function addMessage(role,text=""){
-
     const chat=document.getElementById("chat");
-
     const div=document.createElement("div");
     div.className="message "+role;
 
@@ -154,23 +175,17 @@ function addMessage(role,text=""){
     return div;
 }
 
-
-/* ---------- ADD AUDIO PLAYER ---------- */
+/* ---------- ADD AUDIO ---------- */
 function addAudioPlayer(url){
-
     const chat=document.getElementById("chat");
-
     const wrapper=document.createElement("div");
     wrapper.className="message ai";
-
     wrapper.innerHTML = `
         <b>🎧 خروجی صوتی:</b><br>
         <audio controls autoplay src="${url}"></audio>
     `;
-
     chat.appendChild(wrapper);
 }
-
 
 /* ---------- CHAT ---------- */
 async function sendMessage(){
@@ -185,7 +200,6 @@ async function sendMessage(){
     const aiDiv=addMessage("ai");
 
     try{
-
         const res=await fetch("/api/chat",{
             method:"POST",
             headers:{ "Content-Type":"application/json" },
@@ -199,7 +213,6 @@ async function sendMessage(){
 
         typeWriter(data.reply,aiDiv);
 
-        // ⭐ اگر فایل صوتی آمد
         if(data.audio_url){
             setTimeout(()=>{
                 addAudioPlayer(data.audio_url);
@@ -211,12 +224,9 @@ async function sendMessage(){
     }
 }
 
-
-/* ---------- START CONVERSATION ---------- */
+/* ---------- START ---------- */
 window.onload=async()=>{
-
     const aiDiv=addMessage("ai");
-
     const res=await fetch("/api/chat",{
         method:"POST",
         headers:{ "Content-Type":"application/json" },
@@ -225,9 +235,7 @@ window.onload=async()=>{
             session_id:SESSION_ID
         })
     });
-
     const data=await res.json();
-
     typeWriter(data.reply,aiDiv);
 };
 
