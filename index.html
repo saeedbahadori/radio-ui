@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600&display=swap" rel="stylesheet">
 
 <style>
+
 *{
     margin:0;
     padding:0;
@@ -32,17 +33,12 @@ body{
     background:#1c1c1e;
 }
 
-/* HEADER */
-
 .header{
     padding:16px;
     background:#2c2c2e;
     text-align:center;
     font-weight:600;
-    font-size:15px;
 }
-
-/* CREDITS */
 
 .credits{
     text-align:center;
@@ -50,46 +46,6 @@ body{
     color:#aaa;
     padding:8px 0;
 }
-
-/* VOICE PICKER */
-
-.voice-picker{
-    padding:10px;
-    display:flex;
-    gap:10px;
-    overflow-x:auto;
-}
-
-.voice-card{
-    min-width:140px;
-    background:#2c2c2e;
-    padding:10px;
-    border-radius:14px;
-    display:flex;
-    gap:8px;
-    cursor:pointer;
-    border:2px solid transparent;
-    transition:.2s;
-}
-
-.voice-card.active{
-    border:2px solid #6a5acd;
-    background:#3a3a3c;
-}
-
-.avatar{ font-size:20px; }
-
-.voice-name{
-    font-weight:600;
-    font-size:12px;
-}
-
-.voice-desc{
-    font-size:10px;
-    opacity:.6;
-}
-
-/* CHAT */
 
 .chat-area{
     flex:1;
@@ -101,11 +57,12 @@ body{
 }
 
 .message{
-    padding:12px 14px;
+    padding:14px;
     border-radius:16px;
     max-width:85%;
     font-size:14px;
-    line-height:1.8;
+    line-height:1.9;
+    text-align:justify;
 }
 
 .user{
@@ -118,7 +75,25 @@ body{
     background:#6a5acd;
 }
 
-/* AUDIO */
+.voice-container{
+    display:flex;
+    gap:10px;
+    margin-top:10px;
+    flex-wrap:wrap;
+}
+
+.voice-card{
+    background:#2c2c2e;
+    padding:8px 12px;
+    border-radius:12px;
+    cursor:pointer;
+    font-size:13px;
+    transition:.2s;
+}
+
+.voice-card:hover{
+    background:#6a5acd;
+}
 
 .audio-wrapper{
     background:#6a5acd;
@@ -144,8 +119,6 @@ audio{
     text-decoration:none;
 }
 
-/* INPUT */
-
 .input-area{
     padding:12px;
     background:#2c2c2e;
@@ -158,7 +131,6 @@ input{
     padding:10px;
     border:none;
     border-radius:20px;
-    font-size:14px;
 }
 
 button{
@@ -177,165 +149,170 @@ button{
 
 <div class="app">
 
-<div class="header">
-🎙️ اولین رادیوی هوش مصنوعی جهان
-</div>
+    <div class="header">
+        🎙️ اولین رادیوی هوش مصنوعی جهان
+    </div>
 
-<div class="credits">
-طراحی و اجرا: سعید بهادری<br>
-مجری طرح: زهرا قاعدی<br>
-گرافیک: لادن ره‌آرد
-</div>
+    <div class="credits">
+        طراحی و اجرا: سعید بهادری<br>
+        مجری طرح: زهرا قاعدی<br>
+        گرافیک: لادن ره‌آرد
+    </div>
 
-<!-- VOICE PICKER -->
+    <div id="chat" class="chat-area"></div>
 
-<div class="voice-picker">
-
-<div class="voice-card active" data-voice="alloy">
-<div class="avatar">👨</div>
-<div>
-<div class="voice-name">مرد رسمی</div>
-<div class="voice-desc">اخباری</div>
-</div>
-</div>
-
-<div class="voice-card" data-voice="verse">
-<div class="avatar">👩</div>
-<div>
-<div class="voice-name">زن ملایم</div>
-<div class="voice-desc">آرام</div>
-</div>
-</div>
-
-<div class="voice-card" data-voice="echo">
-<div class="avatar">🎙</div>
-<div>
-<div class="voice-name">مرد گرم</div>
-<div class="voice-desc">رادیویی</div>
-</div>
-</div>
-
-<div class="voice-card" data-voice="nova">
-<div class="avatar">🎧</div>
-<div>
-<div class="voice-name">زن جدی</div>
-<div class="voice-desc">مستند</div>
-</div>
-</div>
-
-</div>
-
-<div id="chat" class="chat-area"></div>
-
-<div class="input-area">
-<input id="message" placeholder="پاسخ خود را بنویسید..." />
-<button onclick="sendMessage()">ارسال</button>
-</div>
+    <div class="input-area">
+        <input id="message" placeholder="پاسخ خود را بنویسید..." />
+        <button onclick="sendMessage()">ارسال</button>
+    </div>
 
 </div>
 
 <script>
 
 const SESSION_ID = crypto.randomUUID();
-let selectedVoice = "alloy";
 
-/* Voice Selector */
+/* TYPE EFFECT */
 
-document.querySelectorAll(".voice-card").forEach(card=>{
-card.addEventListener("click",()=>{
-document.querySelectorAll(".voice-card")
-.forEach(c=>c.classList.remove("active"));
-card.classList.add("active");
-selectedVoice = card.dataset.voice;
-});
-});
+function typeWriter(text, element){
+    let i = 0;
+    function typing(){
+        if(i < text.length){
+            element.innerHTML += text.charAt(i);
+            i++;
+            setTimeout(typing, 15);
+        }
+    }
+    typing();
+}
 
-/* Add Message */
+/* ADD MESSAGE */
 
 function addMessage(role,text){
-const chat=document.getElementById("chat");
-const div=document.createElement("div");
-div.className="message "+role;
-div.innerText=text;
-chat.appendChild(div);
-chat.scrollTop=chat.scrollHeight;
+    const chat=document.getElementById("chat");
+    const div=document.createElement("div");
+    div.className="message "+role;
+    chat.appendChild(div);
+    typeWriter(text, div);
+    chat.scrollTop=chat.scrollHeight;
+    return div;
 }
 
-/* Add Audio */
+/* ADD VOICE OPTIONS */
+
+function addVoiceOptions(){
+
+    const chat=document.getElementById("chat");
+
+    const container=document.createElement("div");
+    container.className="voice-container";
+
+    const voices = {
+        alloy:"👨 مرد رسمی",
+        verse:"👩 زن ملایم",
+        echo:"🎙 مرد گرم",
+        nova:"🎧 زن جدی"
+    };
+
+    for(const key in voices){
+        const btn=document.createElement("div");
+        btn.className="voice-card";
+        btn.innerText=voices[key];
+        btn.onclick=()=>generateAudio(key);
+        container.appendChild(btn);
+    }
+
+    chat.appendChild(container);
+    chat.scrollTop=chat.scrollHeight;
+}
+
+/* GENERATE AUDIO */
+
+async function generateAudio(voice){
+
+    const res=await fetch("/api/chat",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({
+            message:"voice_selected",
+            session_id:SESSION_ID,
+            voice:voice
+        })
+    });
+
+    const data=await res.json();
+
+    addMessage("ai", data.reply);
+
+    if(data.audio_url){
+        addAudioPlayer(data.audio_url);
+    }
+}
+
+/* AUDIO */
 
 function addAudioPlayer(url){
-const chat=document.getElementById("chat");
 
-const wrapper=document.createElement("div");
-wrapper.className="audio-wrapper";
+    const chat=document.getElementById("chat");
 
-wrapper.innerHTML=`
-🎧 خروجی صوتی
-<audio controls autoplay src="${url}"></audio>
-<a class="download-btn" href="${url}" download>دانلود فایل صوتی</a>
-`;
+    const wrapper=document.createElement("div");
+    wrapper.className="audio-wrapper";
 
-chat.appendChild(wrapper);
-chat.scrollTop=chat.scrollHeight;
+    wrapper.innerHTML=`
+        🎧 خروجی صوتی
+        <audio controls autoplay src="${url}"></audio>
+        <a class="download-btn" href="${url}" download>دانلود فایل صوتی</a>
+    `;
+
+    chat.appendChild(wrapper);
+    chat.scrollTop=chat.scrollHeight;
 }
 
-/* Chat */
+/* CHAT */
 
 async function sendMessage(){
 
-const input=document.getElementById("message");
-const text=input.value.trim();
-if(!text) return;
+    const input=document.getElementById("message");
+    const text=input.value.trim();
+    if(!text) return;
 
-addMessage("user",text);
-input.value="";
+    addMessage("user",text);
+    input.value="";
 
-try{
+    const res=await fetch("/api/chat",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({
+            message:text,
+            session_id:SESSION_ID
+        })
+    });
 
-const res=await fetch("/api/chat",{
-method:"POST",
-headers:{ "Content-Type":"application/json" },
-body:JSON.stringify({
-message:text,
-session_id:SESSION_ID,
-voice:selectedVoice   // فقط وقتی تولید صدا شود استفاده می‌شود
-})
-});
+    const data=await res.json();
 
-const data=await res.json();
+    const aiDiv = addMessage("ai", data.reply);
 
-addMessage("ai",data.reply);
-
-if(data.audio_url){
-addAudioPlayer(data.audio_url);
-}
-
-}catch{
-addMessage("ai","خطا در ارتباط با رادیو");
-}
+    // اگر متن آماده شده و باید صدا انتخاب شود
+    if(data.reply.includes("پخش شود")){
+        addVoiceOptions();
+    }
 
 }
 
-/* Enter Key */
-
-document.getElementById("message")
-.addEventListener("keydown",e=>{
-if(e.key==="Enter") sendMessage();
-});
-
-/* Start */
+/* START */
 
 window.onload=async()=>{
-const res=await fetch("/api/chat",{
-method:"POST",
-headers:{ "Content-Type":"application/json" },
-body:JSON.stringify({
-message:"شروع",
-session_id:SESSION_ID
-})
-});
-const data=await res.json();
-addMessage("ai",data.reply);
+    const res=await fetch("/api/chat",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({
+            message:"شروع",
+            session_id:SESSION_ID
+        })
+    });
+
+    const data=await res.json();
+    addMessage("ai",data.reply);
 };
 
 </script>
