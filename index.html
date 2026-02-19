@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fa">
+<html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <title>Radio AI</title>
@@ -17,6 +17,7 @@ html, body {
     font-family:'Vazirmatn', sans-serif;
     overflow:hidden;
     letter-spacing:-0.2px;
+    direction:rtl;
 }
 
 .app-container {
@@ -52,9 +53,10 @@ html, body {
     margin-top:6px;
     font-size:13px;
     opacity:0.6;
+    line-height:1.8;
 }
 
-/* ---------- MAIN (SCROLL AREA) ---------- */
+/* ---------- MAIN ---------- */
 
 .main {
     flex:1;
@@ -102,6 +104,7 @@ input {
     border:none;
     border-radius:6px;
     font-family:'Vazirmatn', sans-serif;
+    text-align:right;
 }
 
 button {
@@ -131,7 +134,8 @@ audio {
         <div id="status">در حال اتصال به رادیو...</div>
 
         <div class="credits">
-            طراحی و اجرا: <strong>سعید بهادری</strong> —
+            طراحی و اجرا: <strong>سعید بهادری</strong><br>
+            گرافیک: <strong>لادن ره‌آرد</strong><br>
             مجری طرح: <strong>زهرا قاعدی</strong>
         </div>
     </header>
