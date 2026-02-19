@@ -56,21 +56,25 @@ def chat(req: ChatRequest):
 
     state = sessions[session_id]
 
+    # STEP 1
     if state["step"] == "program_name":
         state["program_name"] = user_message
         state["step"] = "topic"
         return {"reply": "موضوع برنامه درباره چی باشه؟"}
 
+    # STEP 2
     elif state["step"] == "topic":
         state["topic"] = user_message
         state["step"] = "tone"
         return {"reply": "چه لحنی می‌خوای؟"}
 
+    # STEP 3
     elif state["step"] == "tone":
         state["tone"] = user_message
         state["step"] = "duration"
         return {"reply": "مدت زمان برنامه چند دقیقه باشه؟"}
 
+    # STEP 4
     elif state["step"] == "duration":
         state["duration"] = user_message
         state["step"] = "confirm"
@@ -88,18 +92,20 @@ def chat(req: ChatRequest):
 """
         }
 
+    # STEP 5 — GENERATE SCRIPT
     elif state["step"] == "confirm":
 
         if "بله" not in user_message:
             state["step"] = "program_name"
             return {"reply": "باشه از اول شروع کنیم. اسم برنامه چیه؟"}
 
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {
-                    "role": "system",
-                    "content": f"""
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": f"""
 تو نویسنده حرفه‌ای رادیو هستی.
 
 نام برنامه: {state['program_name']}
@@ -108,15 +114,21 @@ def chat(req: ChatRequest):
 مدت: {state['duration']} دقیقه
 
 فقط متن گوینده را بنویس.
-هیچ توضیح صحنه یا پرانتز ننویس.
+هیچ توضیح صحنه ننویس.
 """
-                }
-            ],
-            temperature=0.9,
-            max_tokens=900
-        )
+                    }
+                ],
+                temperature=0.9,
+                max_tokens=900
+            )
 
-        script = response.choices[0].message.content
+            script = response.choices[0].message.content
+
+        except Exception as e:
+            return JSONResponse(
+                status_code=500,
+                content={"reply": f"خطا در تولید متن: {str(e)}"}
+            )
 
         state["final_script"] = script
         state["step"] = "voice_select"
@@ -125,14 +137,17 @@ def chat(req: ChatRequest):
             "reply": script + "\n\n🎧 با چه صدایی پخش شود؟"
         }
 
+    # STEP 6 — GENERATE AUDIO
     elif state["step"] == "voice_select":
 
         if not req.voice:
             return {"reply": "لطفاً یکی از صداها را انتخاب کن."}
 
+        print("VOICE RECEIVED:", req.voice)  # دیباگ
+
         text = state["final_script"]
 
-        # پاکسازی قبل از TTS
+        # پاکسازی متن
         text = re.sub(r"\(.*?\)", "", text)
         text = re.sub(r"\[.*?\]", "", text)
         text = re.sub(r"\*.*?\*", "", text)
@@ -142,13 +157,21 @@ def chat(req: ChatRequest):
         file_id = str(uuid.uuid4())
         file_path = os.path.join(AUDIO_DIR, f"{file_id}.mp3")
 
-        with client.audio.speech.with_streaming_response.create(
-            model="gpt-4o-mini-tts",
-            voice=req.voice,
-            input=text
-        ) as response:
-            response.stream_to_file(file_path)
+        try:
+            with client.audio.speech.with_streaming_response.create(
+                model="gpt-4o-mini-tts",
+                voice=req.voice,
+                input=text
+            ) as response:
+                response.stream_to_file(file_path)
 
+        except Exception as e:
+            return JSONResponse(
+                status_code=500,
+                content={"reply": f"خطا در تولید صدا: {str(e)}"}
+            )
+
+        # ریست سشن
         sessions.pop(session_id, None)
 
         return {
@@ -156,9 +179,14 @@ def chat(req: ChatRequest):
             "audio_url": f"/audio/{file_id}.mp3"
         }
 
+    # FALLBACK
     sessions.pop(session_id, None)
     return {"reply": "برنامه جدیدی شروع کنیم."}
 
+
+# ===============================
+# AUDIO ROUTE
+# ===============================
 
 @app.get("/audio/{filename}")
 def get_audio(filename: str):
@@ -167,6 +195,10 @@ def get_audio(filename: str):
         return JSONResponse(status_code=404, content={"error": "file not found"})
     return FileResponse(path)
 
+
+# ===============================
+# START SERVER
+# ===============================
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
