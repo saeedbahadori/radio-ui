@@ -5,48 +5,52 @@
 <title>Radio AI</title>
 
 <style>
-body {
+html, body {
+    margin:0;
+    padding:0;
+    height:100%;
     background:black;
     color:white;
-    margin:0;
     font-family:sans-serif;
+    overflow:hidden; /* جلوگیری از اسکرول کل صفحه */
 }
 
 .app-container {
-    max-width:900px;
-    margin:auto;
     display:flex;
     flex-direction:column;
-    min-height:100vh;
+    height:100vh; /* کل ارتفاع صفحه */
+    max-width:900px;
+    margin:auto;
 }
 
 .header {
     padding:20px;
     border-bottom:1px solid #222;
     text-align:center;
+    flex-shrink:0; /* ثابت بمونه */
 }
 
 .header h1 {
     margin:0;
-    font-size:32px;
+    font-size:28px;
 }
 
 #status {
-    margin-top:10px;
+    margin-top:8px;
     opacity:.7;
     font-size:14px;
 }
 
 .credits {
-    margin-top:8px;
-    font-size:14px;
+    margin-top:6px;
+    font-size:13px;
     opacity:0.6;
 }
 
 .main {
-    flex:1;
+    flex:1; /* فضای باقی‌مانده رو بگیره */
+    overflow-y:auto; /* فقط این بخش اسکرول بشه */
     padding:20px;
-    overflow-y:auto;
 }
 
 .chat-box {
@@ -75,7 +79,7 @@ body {
     border-top:1px solid #222;
     display:flex;
     gap:10px;
-    justify-content:center;
+    flex-shrink:0; /* ثابت بمونه */
 }
 
 input {
@@ -110,7 +114,6 @@ audio {
     <header class="header">
         <h1>🎙️ اولین رادیوی هوش مصنوعی</h1>
         <div id="status">در حال اتصال به رادیو...</div>
-
         <div class="credits">
             طراحی و اجرا: <strong>سعید بهادری</strong> —
             مجری طرح: <strong>زهرا قاعدی</strong>
@@ -129,7 +132,6 @@ audio {
 </div>
 
 <script>
-
 const SESSION_ID = crypto.randomUUID();
 
 /* ---------- STATUS ---------- */
@@ -178,10 +180,9 @@ function addMessage(role,text=""){
 
     chat.appendChild(div);
 
-    window.scrollTo({
-        top:document.body.scrollHeight,
-        behavior:"smooth"
-    });
+    // اسکرول فقط داخل main
+    document.querySelector(".main").scrollTop =
+        document.querySelector(".main").scrollHeight;
 
     return div;
 }
@@ -249,7 +250,6 @@ window.onload=async()=>{
     const data=await res.json();
     typeWriter(data.reply,aiDiv);
 };
-
 </script>
 
 </body>
