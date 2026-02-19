@@ -5,55 +5,57 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Radio AI</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600&display=swap" rel="stylesheet">
 
 <style>
-html, body {
+
+*{
     margin:0;
     padding:0;
-    height:100%;
-    font-family:'Vazirmatn', sans-serif;
-    background:#1c1c1e;
-    overflow:hidden;
+    box-sizing:border-box;
+    font-family:'Vazirmatn',sans-serif;
 }
 
-/* ================= APP CONTAINER ================= */
+body{
+    background:#121212;
+    color:white;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+}
 
-.app {
+.app{
+    width:100%;
+    max-width:500px;
+    height:100vh;
     display:flex;
     flex-direction:column;
-    height:100dvh;
-    max-width:500px;
-    margin:auto;
     background:#1c1c1e;
 }
 
-/* ================= HEADER ================= */
+/* ---------- HEADER ---------- */
 
-.header {
-    height:60px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+.header{
+    padding:16px;
     background:#2c2c2e;
-    color:white;
+    text-align:center;
     font-weight:600;
     font-size:16px;
-    position:relative;
 }
 
-.status-dot {
-    width:8px;
-    height:8px;
-    background:#4caf50;
-    border-radius:50%;
-    position:absolute;
-    left:16px;
+/* ---------- CREDITS ---------- */
+
+.credits{
+    text-align:center;
+    font-size:12px;
+    color:#aaa;
+    padding:8px 0;
+    background:#1c1c1e;
 }
 
-/* ================= CHAT AREA ================= */
+/* ---------- CHAT AREA ---------- */
 
-.chat-area {
+.chat-area{
     flex:1;
     overflow-y:auto;
     padding:16px;
@@ -62,73 +64,87 @@ html, body {
     gap:10px;
 }
 
-/* ================= MESSAGE ================= */
+/* ---------- MESSAGES ---------- */
 
-.message {
-    max-width:75%;
+.message{
     padding:12px 14px;
-    border-radius:18px;
+    border-radius:16px;
+    max-width:80%;
     font-size:14px;
     line-height:1.8;
-    word-wrap:break-word;
 }
 
-/* پیام کاربر */
-.user {
-    align-self:flex-end;
-    background:#7b61ff;
-    color:white;
-    border-bottom-right-radius:6px;
-}
-
-/* پیام رادیو */
-.ai {
+.user{
     align-self:flex-start;
-    background:#3a3a3c;
-    color:white;
-    border-bottom-left-radius:6px;
-}
-
-/* ================= INPUT AREA ================= */
-
-.input-area {
-    height:65px;
-    display:flex;
-    align-items:center;
-    gap:8px;
-    padding:10px;
     background:#2c2c2e;
 }
 
-input {
+.ai{
+    align-self:flex-end;
+    background:#6a5acd;
+    color:white;
+}
+
+/* ---------- AUDIO BLOCK ---------- */
+
+.audio-wrapper{
+    background:#6a5acd;
+    padding:12px;
+    border-radius:16px;
+    max-width:80%;
+    align-self:flex-end;
+}
+
+audio{
+    width:100%;
+    margin-top:8px;
+}
+
+.download-btn{
+    display:inline-block;
+    margin-top:8px;
+    padding:6px 12px;
+    background:white;
+    color:black;
+    border-radius:8px;
+    font-size:12px;
+    text-decoration:none;
+}
+
+/* ---------- INPUT AREA ---------- */
+
+.input-area{
+    padding:12px;
+    background:#2c2c2e;
+    display:flex;
+    gap:8px;
+}
+
+input{
     flex:1;
-    padding:10px 14px;
-    border-radius:20px;
+    padding:10px;
     border:none;
-    font-family:'Vazirmatn';
+    border-radius:20px;
     font-size:14px;
-    background:#3a3a3c;
-    color:white;
 }
 
-button {
-    background:#7b61ff;
-    border:none;
-    color:white;
+button{
     padding:10px 16px;
+    border:none;
     border-radius:20px;
+    background:#6a5acd;
+    color:white;
     cursor:pointer;
-    font-family:'Vazirmatn';
 }
 
-/* اسکرول نرم */
-.chat-area::-webkit-scrollbar {
-    width:6px;
+/* ---------- MOBILE FIX ---------- */
+
+@media(max-width:600px){
+    .app{
+        max-width:100%;
+    }
 }
-.chat-area::-webkit-scrollbar-thumb {
-    background:#444;
-    border-radius:3px;
-}
+
 </style>
 </head>
 
@@ -137,14 +153,19 @@ button {
 <div class="app">
 
     <div class="header">
-        <div class="status-dot"></div>
-        🎙️ Radio AI Live
+        🎙️ اولین رادیوی هوش مصنوعی جهان
+    </div>
+
+    <div class="credits">
+        طراحی و اجرا: سعید بهادری<br>
+        مجری طرح: زهرا قاعدی<br>
+        گرافیک: لادن ره‌آرد
     </div>
 
     <div id="chat" class="chat-area"></div>
 
     <div class="input-area">
-        <input id="message" placeholder="پیام خود را بنویسید..." />
+        <input id="message" placeholder="پاسخ خود را بنویسید..." />
         <button onclick="sendMessage()">ارسال</button>
     </div>
 
@@ -154,43 +175,39 @@ button {
 
 const SESSION_ID = crypto.randomUUID();
 
-/* ================= ADD MESSAGE ================= */
+/* ---------- ADD MESSAGE ---------- */
 
-function addMessage(role, text="") {
+function addMessage(role,text){
+    const chat=document.getElementById("chat");
 
-    const chat = document.getElementById("chat");
-
-    const div = document.createElement("div");
-    div.className = "message " + role;
-    div.innerHTML = text;
+    const div=document.createElement("div");
+    div.className="message "+role;
+    div.innerText=text;
 
     chat.appendChild(div);
-
-    chat.scrollTop = chat.scrollHeight;
-
-    return div;
+    chat.scrollTop=chat.scrollHeight;
 }
 
-/* ================= TYPE EFFECT ================= */
+/* ---------- ADD AUDIO ---------- */
 
-function typeWriter(text, element) {
-    let i=0;
-    function typing(){
-        if(i<text.length){
-            element.innerHTML += text.charAt(i);
-            i++;
-            setTimeout(typing,15);
-        }
-    }
-    typing();
+function addAudioPlayer(url){
+
+    const chat=document.getElementById("chat");
+
+    const wrapper=document.createElement("div");
+    wrapper.className="audio-wrapper";
+
+    wrapper.innerHTML=`
+        🎧 خروجی صوتی
+        <audio controls autoplay src="${url}"></audio>
+        <a class="download-btn" href="${url}" download>دانلود فایل صوتی</a>
+    `;
+
+    chat.appendChild(wrapper);
+    chat.scrollTop=chat.scrollHeight;
 }
 
-/* ================= SEND ================= */
-
-document.getElementById("message")
-.addEventListener("keydown", e=>{
-    if(e.key==="Enter") sendMessage();
-});
+/* ---------- CHAT ---------- */
 
 async function sendMessage(){
 
@@ -198,14 +215,12 @@ async function sendMessage(){
     const text=input.value.trim();
     if(!text) return;
 
-    addMessage("user", text);
+    addMessage("user",text);
     input.value="";
-
-    const aiDiv = addMessage("ai","");
 
     try{
 
-        const res = await fetch("/api/chat",{
+        const res=await fetch("/api/chat",{
             method:"POST",
             headers:{ "Content-Type":"application/json" },
             body:JSON.stringify({
@@ -214,22 +229,31 @@ async function sendMessage(){
             })
         });
 
-        const data = await res.json();
+        const data=await res.json();
 
-        typeWriter(data.reply, aiDiv);
+        addMessage("ai",data.reply);
+
+        if(data.audio_url){
+            addAudioPlayer(data.audio_url);
+        }
 
     }catch{
-        aiDiv.innerHTML = "خطا در ارتباط با رادیو";
+        addMessage("ai","خطا در ارتباط با رادیو");
     }
 }
 
-/* ================= START ================= */
+/* ---------- ENTER SEND ---------- */
 
-window.onload = async ()=>{
+document.getElementById("message")
+.addEventListener("keydown",e=>{
+    if(e.key==="Enter") sendMessage();
+});
 
-    const aiDiv = addMessage("ai","");
+/* ---------- START ---------- */
 
-    const res = await fetch("/api/chat",{
+window.onload=async()=>{
+
+    const res=await fetch("/api/chat",{
         method:"POST",
         headers:{ "Content-Type":"application/json" },
         body:JSON.stringify({
@@ -238,9 +262,8 @@ window.onload = async ()=>{
         })
     });
 
-    const data = await res.json();
-
-    typeWriter(data.reply, aiDiv);
+    const data=await res.json();
+    addMessage("ai",data.reply);
 };
 
 </script>
